@@ -55,6 +55,7 @@ export interface StringMap {
   'appearanceScreen.theme.turquoise': 'string';
   'appearanceScreen.theme.yotsuba': 'string';
   'appearanceScreen.theme.catppuccin': 'string';
+  'appearanceScreen.theme.notburning': 'string';
   'backupScreen.backupName': 'string';
   'backupScreen.createBackup': 'string';
   'backupScreen.createBackupDesc': 'string';

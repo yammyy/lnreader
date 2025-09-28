@@ -52,8 +52,114 @@ export const insertChapters = async (
     .catch();
 };
 
+export const insertChapterAndAdjustPositions = async (
+  novelId: number,
+  newChapter: ChapterItem,
+) => {
+  await db.withTransactionAsync(async () => {
+    // Step 1: shift all chapters after the target position
+    const shiftStatement = db.prepareSync(
+      `UPDATE Chapter
+       SET position = position + 1
+       WHERE novelId = ? AND position >= ?`
+    );
+    try {
+      shiftStatement.executeSync(novelId, newChapter.position ?? 0);
+    } finally {
+      shiftStatement.finalizeSync();
+    }
+
+    // Step 2: insert the new chapter at the desired position
+    const insertStatement = db.prepareSync(`
+      INSERT INTO Chapter (path, name, releaseTime, novelId, chapterNumber, page, position)
+      VALUES (?, ?, ?, ${novelId}, ?, ?, ?)
+      ON CONFLICT(path, novelId) DO UPDATE SET
+        page = excluded.page,
+        position = excluded.position,
+        name = excluded.name,
+        releaseTime = excluded.releaseTime,
+        chapterNumber = excluded.chapterNumber;
+    `);
+
+    try {
+      insertStatement.executeSync(
+        newChapter.path,
+        newChapter.name ?? 'Chapter',
+        newChapter.releaseTime || '',
+        newChapter.chapterNumber || null,
+        newChapter.page || '1',
+        newChapter.position ?? 0,
+      );
+    } finally {
+      insertStatement.finalizeSync();
+    }
+  });
+};
+
 export const markChapterRead = (chapterId: number) =>
   db.runAsync('UPDATE Chapter SET `unread` = 0 WHERE id = ?', chapterId);
+
+export const deleteChapterFromDb = async (chapterId: number) => {
+  // Step 1: get the chapter's position and novelId
+  const chapter = await db.getFirstAsync<{ position: number; novelId: number }>(
+        'SELECT position, novelId FROM Chapter WHERE id = ?',
+        chapterId
+      );
+
+  if (!chapter) return;
+
+  const { position: currentPosition, novelId } = chapter;
+
+  // Step 2: delete the chapter
+  await db.runAsync('DELETE FROM Chapter WHERE id = ?', chapterId);
+
+  // Step 3: shift positions of all following chapters
+  await db.runAsync(
+    `UPDATE Chapter
+     SET position = position - 1
+     WHERE novelId = ? AND position > ?`,
+    novelId,
+    currentPosition
+  );
+};
+
+export const deleteChaptersFromDb = async (chapterIds: number[]) => {
+  if (!chapterIds?.length) return;
+
+  await db.withTransactionAsync(async () => {
+    // Step 1: get deleted chapters' positions and novelId
+    const chapters = await db.getAllAsync<{ id: number; position: number; novelId: number }>(
+      `SELECT id, position, novelId FROM Chapter WHERE id IN (${chapterIds.map(() => '?').join(',')})`,
+      ...chapterIds
+    );
+
+    if (!chapters.length) return;
+
+    const novelId = chapters[0].novelId;
+
+    // Step 2: delete the chapters
+    await db.runAsync(
+      `DELETE FROM Chapter WHERE id IN (${chapterIds.map(() => '?').join(',')})`,
+      ...chapterIds
+    );
+
+    // Step 3: shift positions of remaining chapters in one query
+    await db.runAsync(
+      `
+      UPDATE Chapter
+      SET position = position - (
+        SELECT COUNT(*)
+        FROM Chapter AS deleted
+        WHERE deleted.id IN (${chapterIds.map(() => '?').join(',')})
+          AND deleted.position < Chapter.position
+      )
+      WHERE novelId = ?
+      `,
+      ...chapterIds,
+      novelId
+    );
+  });
+};
 
 export const markChaptersRead = (chapterIds: number[]) =>
   db.execAsync(

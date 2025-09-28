@@ -10,6 +10,7 @@ import { ThemeColors } from '@theme/types';
 import { ChapterInfo } from '@database/types';
 import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons';
 import { getString } from '@strings/translations';
+import { Swipeable } from 'react-native-gesture-handler';
 
 interface ChapterItemProps {
   isDownloading?: boolean;
@@ -24,6 +25,9 @@ interface ChapterItemProps {
   onSelectLongPress?: (chapter: ChapterInfo) => void;
   navigateToChapter: (chapter: ChapterInfo) => void;
   setChapterDownloaded?: (value: boolean) => void;
+  onSelectPress?: (chapter: ChapterInfo) => void;
+  handleDeleteChapter?: (chapter: ChapterInfo) => void;
+  handleAddChapter?: (chapter: ChapterInfo) => void;
   left?: ReactNode;
   isLocal: boolean;
   isUpdateCard?: boolean;
@@ -43,6 +47,8 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
   onSelectLongPress,
   navigateToChapter,
   setChapterDownloaded,
+  handleDeleteChapter,
+  handleAddChapter,
   isLocal,
   left,
   isUpdateCard,
@@ -54,129 +60,156 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
   isBookmarked ??= bookmark;
 
   return (
-    <View key={'chapterItem' + id}>
-      <Pressable
-        style={[
-          styles.chapterCardContainer,
-          isSelected && {
-            backgroundColor: color(theme.primary).alpha(0.12).string(),
-          },
-        ]}
-        onPress={() => {
-          if (onSelectPress) {
-            onSelectPress(chapter);
-          } else {
-            navigateToChapter(chapter);
-          }
-        }}
-        onLongPress={() => onSelectLongPress?.(chapter)}
-        android_ripple={{ color: theme.rippleColor }}
-      >
-        <View style={styles.row}>
-          {left}
-          {isBookmarked ? <ChapterBookmarkButton theme={theme} /> : null}
-          <View style={{ flex: 1 }}>
-            {isUpdateCard ? (
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: unread ? theme.onSurface : theme.outline,
-                }}
-                numberOfLines={1}
-              >
-                {novelName}
-              </Text>
-            ) : null}
-            <View
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            >
-              {unread ? (
-                <MaterialCommunityIcons
-                  name="circle"
-                  color={theme.primary}
-                  size={8}
-                  style={styles.unreadIcon}
-                />
-              ) : null}
-
-              <Text
-                style={{
-                  fontSize: isUpdateCard ? 12 : 14,
-                  color: !unread
-                    ? theme.outline
-                    : bookmark
-                    ? theme.primary
-                    : theme.onSurface,
-                  flex: 1,
-                }}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {showChapterTitles
-                  ? name
-                  : getString('novelScreen.chapterChapnum', {
-                      num: chapterNumber,
-                    })}
-              </Text>
-            </View>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            >
-              {releaseTime && !isUpdateCard ? (
-                <Text
-                  style={[
-                    {
-                      color: !unread
-                        ? theme.outline
-                        : bookmark
-                        ? theme.primary
-                        : theme.onSurfaceVariant,
-                      marginTop: 4,
-                    },
-                    styles.text,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {releaseTime}
-                </Text>
-              ) : null}
-              {!isUpdateCard && progress && progress > 0 && chapter.unread ? (
+    <Swipeable
+      renderLeftActions={() => (
+        <View
+          style={{
+            backgroundColor: 'red',
+            justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <Text style={{ color: 'white' }}>Delete</Text>
+        </View>
+      )}
+      renderRightActions={() => (
+        <View
+          style={{
+            backgroundColor: 'green',
+            justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <Text style={{ color: 'white' }}>Add</Text>
+        </View>
+      )}
+      onSwipeableLeftOpen={() => handleDeleteChapter?.(chapter)}
+      onSwipeableRightOpen={() => handleAddChapter?.(chapter)}
+    >
+      <View key={'chapterItem' + id}>
+        <Pressable
+          style={[
+            styles.chapterCardContainer,
+            isSelected && {
+              backgroundColor: color(theme.primary).alpha(0.12).string(),
+            },
+          ]}
+          onPress={() => {
+            if (onSelectPress) {
+              onSelectPress(chapter);
+            } else {
+              navigateToChapter(chapter);
+            }
+          }}
+          onLongPress={() => onSelectLongPress?.(chapter)}
+          android_ripple={{ color: theme.rippleColor }}
+        >
+          <View style={styles.row}>
+            {left}
+            {isBookmarked ? <ChapterBookmarkButton theme={theme} /> : null}
+            <View style={{ flex: 1 }}>
+              {isUpdateCard ? (
                 <Text
                   style={{
-                    color: theme.outline,
-                    marginLeft: chapter.releaseTime ? 5 : 0,
-                    fontSize: 12,
-                    marginTop: 4,
+                    fontSize: 14,
+                    color: unread ? theme.onSurface : theme.outline,
                   }}
                   numberOfLines={1}
                 >
-                  {chapter.releaseTime ? '•  ' : null}
-                  {getString('novelScreen.progress', { progress })}
+                  {novelName}
                 </Text>
               ) : null}
+              <View
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                {unread ? (
+                  <MaterialCommunityIcons
+                    name="circle"
+                    color={theme.primary}
+                    size={8}
+                    style={styles.unreadIcon}
+                  />
+                ) : null}
+
+                <Text
+                  style={{
+                    fontSize: isUpdateCard ? 12 : 14,
+                    color: !unread
+                      ? theme.outline
+                      : bookmark
+                      ? theme.primary
+                      : theme.onSurface,
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {showChapterTitles
+                    ? name
+                    : getString('novelScreen.chapterChapnum', {
+                        num: chapterNumber,
+                      })}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                {releaseTime && !isUpdateCard ? (
+                  <Text
+                    style={[
+                      {
+                        color: !unread
+                          ? theme.outline
+                          : bookmark
+                          ? theme.primary
+                          : theme.onSurfaceVariant,
+                        marginTop: 4,
+                      },
+                      styles.text,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {releaseTime}
+                  </Text>
+                ) : null}
+                {!isUpdateCard && progress && progress > 0 && chapter.unread ? (
+                  <Text
+                    style={{
+                      color: theme.outline,
+                      marginLeft: chapter.releaseTime ? 5 : 0,
+                      fontSize: 12,
+                      marginTop: 4,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {chapter.releaseTime ? '•  ' : null}
+                    {getString('novelScreen.progress', { progress })}
+                  </Text>
+                ) : null}
+              </View>
             </View>
           </View>
-        </View>
-        {!isLocal ? (
-          <DownloadButton
-            isDownloading={isDownloading}
-            isDownloaded={chapter.isDownloaded}
-            chapterId={chapter.id}
-            theme={theme}
-            setChapterDownloaded={setChapterDownloaded}
-            deleteChapter={deleteChapter}
-            downloadChapter={downloadChapter}
-          />
-        ) : null}
-      </Pressable>
-    </View>
+          {!isLocal ? (
+            <DownloadButton
+              isDownloading={isDownloading}
+              isDownloaded={chapter.isDownloaded}
+              chapterId={chapter.id}
+              theme={theme}
+              setChapterDownloaded={setChapterDownloaded}
+              deleteChapter={deleteChapter}
+              downloadChapter={downloadChapter}
+            />
+          ) : null}
+        </Pressable>
+      </View>
+    </Swipeable>
   );
 };
 

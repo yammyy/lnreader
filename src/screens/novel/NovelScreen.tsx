@@ -43,6 +43,7 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
     openPage,
     setNovel,
     bookmarkChapters,
+    deleteChaptersFromDb,
     markChaptersRead,
     markChaptersUnread,
     markPreviouschaptersRead,
@@ -149,6 +150,14 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
       },
     });
 
+    list.push({
+      icon:'delete-forever-outline',
+      onPress: () => {
+          deleteChaptersFromDb(selected);
+          setSelected([]);
+      },
+    });
+
     if (selected.some(obj => obj.unread)) {
       list.push({
         icon: 'check',
@@ -196,6 +205,7 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
     return list;
   }, [
     bookmarkChapters,
+    deleteChaptersFromDb,
     deleteChapters,
     downloadChapters,
     markChaptersRead,

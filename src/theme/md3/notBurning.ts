@@ -1,0 +1,78 @@
+import { getString } from '@strings/translations';
+
+export const notBurningTheme = {
+  light: {
+    id: 22,
+    name: getString('appearanceScreen.theme.notburning'),
+    isDark: false,
+    primary: 'rgb(25, 64, 140)', // deep refined blue
+    onPrimary: 'rgb(255, 255, 255)',
+    primaryContainer: 'rgb(210, 224, 255)',
+    onPrimaryContainer: 'rgb(12, 35, 80)',
+    secondary: 'rgb(72, 89, 120)', // muted navy-gray
+    onSecondary: 'rgb(255, 255, 255)',
+    secondaryContainer: 'rgb(218, 225, 240)',
+    onSecondaryContainer: 'rgb(20, 30, 50)',
+    tertiary: 'rgb(85, 102, 160)', // soft steel blue
+    onTertiary: 'rgb(255, 255, 255)',
+    tertiaryContainer: 'rgb(220, 230, 255)',
+    onTertiaryContainer: 'rgb(28, 40, 80)',
+    error: 'rgb(186, 26, 26)',
+    onError: 'rgb(255, 255, 255)',
+    errorContainer: 'rgb(255, 218, 214)',
+    onErrorContainer: 'rgb(65, 0, 2)',
+    background: 'rgb(248, 250, 255)', // very light blue-white
+    onBackground: 'rgb(25, 32, 45)',
+    surface: 'rgb(248, 250, 255)',
+    onSurface: 'rgb(25, 32, 45)',
+    surfaceVariant: 'rgb(220, 225, 240)',
+    onSurfaceVariant: 'rgb(70, 75, 90)',
+    outline: 'rgb(120, 125, 140)',
+    outlineVariant: 'rgb(200, 205, 220)',
+    shadow: 'rgb(0, 0, 0)',
+    scrim: 'rgb(0, 0, 0)',
+    inverseSurface: 'rgb(45, 50, 65)',
+    inverseOnSurface: 'rgb(240, 242, 250)',
+    inversePrimary: 'rgb(160, 190, 255)',
+    surfaceDisabled: 'rgba(25, 32, 45, 0.12)',
+    onSurfaceDisabled: 'rgba(25, 32, 45, 0.38)',
+    backdrop: 'rgba(40, 50, 70, 0.4)',
+  },
+  dark: {
+    id: 23,
+    name: getString('appearanceScreen.theme.notburning'),
+    isDark: true,
+    primary: 'rgb(200, 170, 140)', // warm muted beige-brown
+    onPrimary: 'rgb(50, 30, 15)',
+    primaryContainer: 'rgb(85, 65, 50)',
+    onPrimaryContainer: 'rgb(235, 210, 190)',
+    secondary: 'rgb(170, 150, 130)', // soft earthy tone
+    onSecondary: 'rgb(45, 35, 25)',
+    secondaryContainer: 'rgb(80, 65, 55)',
+    onSecondaryContainer: 'rgb(220, 205, 190)',
+    tertiary: 'rgb(190, 155, 130)', // reddish-brown accent
+    onTertiary: 'rgb(50, 30, 20)',
+    tertiaryContainer: 'rgb(95, 70, 55)',
+    onTertiaryContainer: 'rgb(240, 215, 200)',
+    error: 'rgb(255, 180, 171)',
+    onError: 'rgb(105, 0, 5)',
+    errorContainer: 'rgb(147, 0, 10)',
+    onErrorContainer: 'rgb(255, 180, 171)',
+    background: 'rgb(28, 25, 23)', // deep warm brownish background
+    onBackground: 'rgb(230, 225, 220)',
+    surface: 'rgb(28, 25, 23)',
+    onSurface: 'rgb(230, 225, 220)',
+    surfaceVariant: 'rgb(75, 65, 60)',
+    onSurfaceVariant: 'rgb(200, 190, 180)',
+    outline: 'rgb(140, 130, 120)',
+    outlineVariant: 'rgb(75, 65, 60)',
+    shadow: 'rgb(0, 0, 0)',
+    scrim: 'rgb(0, 0, 0)',
+    inverseSurface: 'rgb(230, 225, 220)',
+    inverseOnSurface: 'rgb(50, 45, 40)',
+    inversePrimary: 'rgb(120, 95, 70)',
+    surfaceDisabled: 'rgba(230, 225, 220, 0.12)',
+    onSurfaceDisabled: 'rgba(230, 225, 220, 0.38)',
+    backdrop: 'rgba(55, 45, 40, 0.4)',
+  },
+};

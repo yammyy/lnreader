@@ -12,6 +12,7 @@ import {
 } from '@database/queries/NovelQueries';
 import {
   bookmarkChapter as _bookmarkChapter,
+  deleteChaptersFromDb as dbDeleteChapters,
   markChapterRead as _markChapterRead,
   markChaptersRead as _markChaptersRead,
   markPreviuschaptersRead as _markPreviuschaptersRead,
@@ -422,6 +423,20 @@ export const useNovel = (novelOrPath: string | NovelInfo, pluginId: string) => {
     [mutateChapters],
   );
 
+const deleteChaptersFromDb = useCallback(
+  async (_chapters: ChapterInfo[]) => {
+    if (!_chapters.length) return;
+
+    const chapterIds = _chapters.map(ch => ch.id);
+
+    await dbDeleteChapters(chapterIds);
+
+    // Refresh chapters list from DB instead of manual filtering
+    await getNovel(); // or whatever query refetches chapters
+  },
+  [getNovel]
+);
+
   const markPreviouschaptersRead = useCallback(
     (chapterId: number) => {
       if (novel) {
@@ -651,6 +666,7 @@ export const useNovel = (novelOrPath: string | NovelInfo, pluginId: string) => {
       sortAndFilterChapters,
       followNovel,
       bookmarkChapters,
+      deleteChaptersFromDb,
       markPreviouschaptersRead,
       markChapterRead,
       markChaptersRead,
@@ -681,6 +697,7 @@ export const useNovel = (novelOrPath: string | NovelInfo, pluginId: string) => {
       sortAndFilterChapters,
       followNovel,
       bookmarkChapters,
+      deleteChaptersFromDb,
       markPreviouschaptersRead,
       markChapterRead,
       markChaptersRead,

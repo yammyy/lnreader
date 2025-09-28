@@ -6,9 +6,11 @@ import { lavenderTheme } from './lavender';
 import { strawberryDaiquiriTheme } from './strawberry';
 import { takoTheme } from './tako';
 import { catppuccinTheme } from './catppuccin';
+import { notBurningTheme } from './notBurning';
 
 export const lightThemes = [
   defaultTheme.light,
+  notBurningTheme.light,
   midnightDusk.light,
   tealTurquoise.light,
   yotsubaTheme.light,
@@ -19,6 +21,7 @@ export const lightThemes = [
 ];
 export const darkThemes = [
   defaultTheme.dark,
+  notBurningTheme.dark,
   midnightDusk.dark,
   tealTurquoise.dark,
   yotsubaTheme.dark,

@@ -31,6 +31,10 @@ import { FlashList } from '@shopify/flash-list';
 import FileManager from '@specs/NativeFile';
 import { downloadFile } from '@plugins/helpers/fetch';
 import { StorageAccessFramework } from 'expo-file-system';
+import {
+  deleteChapterFromDb,
+  insertChapterAndAdjustPositions,
+} from '@database/queries/ChapterQueries';
 
 type NovelScreenListProps = {
   headerOpacity: SharedValue<number>;
@@ -180,6 +184,32 @@ const NovelScreenList = ({
       }
     }
   };
+
+  const handleDeleteChapter = async (chapter: ChapterInfo) => {
+    try {
+      await deleteChapterFromDb(chapter.id);
+      await getNovel();
+    } catch (err: any) {
+      showToast('Error deleting chapter: ' + x + err.message);
+    }
+  };
+
+const handleAddChapter = async (chapter: ChapterInfo) => {
+  try {
+    await insertChapterAndAdjustPositions(novel.id, {
+      path: chapter.path + '_new',
+      name: chapter.name,
+      releaseTime: chapter.releaseTime ?? '',
+      chapterNumber: chapter.chapterNumber ?? null,
+      page: chapter.page ?? '1',
+      position: chapter.position + 1, // insert right after current
+    });
+
+    await getNovel();
+  } catch (err: any) {
+    showToast('Error adding chapter: ' + err.message);
+  }
+};
 
   const onSelectLongPress = (chapter: ChapterInfo) => {
     if (selected.length === 0) {
@@ -332,6 +362,8 @@ const NovelScreenList = ({
               onSelectPress={onSelectPress}
               onSelectLongPress={onSelectLongPress}
               navigateToChapter={navigateToChapter}
+              handleDeleteChapter={handleDeleteChapter}
+              handleAddChapter={handleAddChapter}
               novelName={novel.name}
               setChapterDownloaded={(value: boolean) =>
                 updateChapter?.(index, { isDownloaded: value })
