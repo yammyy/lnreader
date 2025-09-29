@@ -194,18 +194,19 @@ const NovelScreenList = ({
     }
   };
 
-const handleAddChapter = async (chapter: ChapterInfo) => {
+const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: string }) => {
   try {
     await insertChapterAndAdjustPositions(novel.id, {
-      path: chapter.path + '_new',
-      name: chapter.name,
-      releaseTime: chapter.releaseTime ?? '',
+      path: chapter.path ?? '',
+      name: chapter.name ?? '',
+      releaseTime: '',
       chapterNumber: chapter.chapterNumber ?? null,
       page: chapter.page ?? '1',
       position: chapter.position + 1, // insert right after current
     });
 
-    await getNovel();
+    await getNovel(); // refresh chapters
+    showToast('Chapter added successfully');
   } catch (err: any) {
     showToast('Error adding chapter: ' + err.message);
   }
