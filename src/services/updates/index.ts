@@ -37,12 +37,11 @@ const updateLibrary = async (
   };
 
   let libraryNovels: LibraryNovelInfo[] = [];
-  if (categoryId) {
-    libraryNovels = getLibraryWithCategory({
-      filter:
-        `categoryId = ${categoryId}` +
-        (onlyUpdateOngoingNovels ? " AND status = 'Ongoing'" : ''),
-    });
+  if (categoryId !== undefined && categoryId !== null) {
+    libraryNovels = getLibraryWithCategory(
+      categoryId,
+      onlyUpdateOngoingNovels,
+    ) as LibraryNovelInfo[];
   } else {
     libraryNovels = getLibraryNovelsFromDb(
       '',
@@ -55,7 +54,7 @@ const updateLibrary = async (
     for (let i = 0; i < libraryNovels.length; i++) {
       setMeta(meta => ({
         ...meta,
-        progressText: libraryNovels[i].name,
+        progressText: libraryNovels[i].name+"("+i +"/"+ libraryNovels.length+")",
         progress: i / libraryNovels.length,
       }));
 
@@ -73,7 +72,7 @@ const updateLibrary = async (
       }
     }
   } else {
-    showToast("There's no novel to be updated");
+    showToast("There's no novel to be updated in category# "+categoryId);
   }
 
   setMeta(meta => ({

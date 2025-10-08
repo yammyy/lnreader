@@ -334,6 +334,8 @@ const LibraryScreen = ({ navigation }: LibraryScreenProps) => {
           {
             title: getString('libraryScreen.extraMenu.updateLibrary'),
             onPress: () =>
+              //2 = local category
+              library[index].id !== 2 &&
               ServiceManager.manager.addTask({
                 name: 'UPDATE_LIBRARY',
               }),
@@ -341,8 +343,6 @@ const LibraryScreen = ({ navigation }: LibraryScreenProps) => {
           {
             title: getString('libraryScreen.extraMenu.updateCategory'),
             onPress: () =>
-              //2 = local category
-              library[index].id !== 2 &&
               ServiceManager.manager.addTask({
                 name: 'UPDATE_LIBRARY',
                 data: {

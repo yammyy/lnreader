@@ -27,66 +27,39 @@ export const getLibraryNovelsFromDb = (
   return getAllSync<NovelInfo>([query, [searchText ?? '']]);
 };
 
-const getLibraryWithCategoryQuery = 'SELECT * FROM Novel WHERE inLibrary = 1';
-// `
-//   SELECT *
-//   FROM
-//   (
-//     SELECT NIL.*, chaptersUnread, chaptersDownloaded, lastReadAt, lastUpdatedAt
-//     FROM
-//     (
-//       SELECT
-//         Novel.*,
-//         category,
-//         categoryId
-//       FROM
-//       Novel LEFT JOIN (
-//         SELECT NovelId, name as category, categoryId FROM (NovelCategory JOIN Category ON NovelCategory.categoryId = Category.id)
-//       ) as NC ON Novel.id = NC.novelId
-//       WHERE inLibrary = 1
-//     ) as NIL
-//     LEFT JOIN
-//     (
-//       SELECT
-//         SUM(unread) as chaptersUnread, SUM(isDownloaded) as chaptersDownloaded,
-//         novelId, MAX(readTime) as lastReadAt, MAX(updatedTime) as lastUpdatedAt
-//       FROM Chapter
-//       GROUP BY novelId
-//     ) as C ON NIL.id = C.novelId
-//   ) WHERE 1 = 1
-// `;
+const getNovelOfCategoryQuery = 'SELECT DISTINCT novelId FROM NovelCategory WHERE 1 = 1 ';
+const getNovelsFromIDListQuery = 'SELECT * FROM Novel WHERE inLibrary = 1 ';
 
-export const getLibraryWithCategory = ({
-  filter,
-  searchText,
-  sortOrder,
-  downloadedOnlyMode,
-}: {
-  sortOrder?: string;
-  filter?: string;
-  searchText?: string;
-  downloadedOnlyMode?: boolean;
-}): LibraryNovelInfo[] => {
-  let query = getLibraryWithCategoryQuery;
+export const getLibraryWithCategory = (
+                                      categoryId?: number | null,
+                                      onlyUpdateOngoingNovels?: boolean,
+                                    ): LibraryNovelInfo[] => {
+  // 1) Get novelIds from NovelCategory (optionally restrict by categoryId)
+  let catQuery = getNovelOfCategoryQuery;
   const preparedArgument: (string | number | null)[] = [];
-
-  if (filter) {
-    // query += ` AND ${filter} `;
-  }
-  if (downloadedOnlyMode) {
-    query += ' ' + LibraryFilter.DownloadedOnly;
+  if (categoryId) {
+      catQuery += ` AND categoryId = ${categoryId}`;
   }
 
-  if (searchText) {
-    query += ' AND name LIKE ? ';
-    preparedArgument.push(`%${searchText}%`);
+  const idRows = getAllSync<{ novelId: number }>([catQuery, preparedArgument]);
+
+  // If no novelIds found -> return empty result early
+  if (!idRows || idRows.length === 0) return [];
+
+  // 2) Query Novel using the collected ids and apply Novel-level filters
+  const novelIds = idRows.map(r => r.novelId).join(',');
+
+  let novelQuery = getNovelsFromIDListQuery;
+
+  // Add IN clause for ids (use placeholders)
+  novelQuery += ` AND id IN (${novelIds})`;
+
+  // onlyUpdateOngoingNovels -> additional status filter applied to Novel table
+  if (onlyUpdateOngoingNovels) {
+    novelQuery += ` AND status = 'Ongoing'`;
   }
 
-  if (sortOrder) {
-    query += ` ORDER BY ${sortOrder} `;
-  }
-
-  const res = getAllSync<LibraryNovelInfo>([query, preparedArgument]);
+  const res = getAllSync<LibraryNovelInfo>([novelQuery, preparedArgument]);
 
   return res;
 };
