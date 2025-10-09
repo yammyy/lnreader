@@ -1,11 +1,12 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, { memo, ReactNode, useState } from 'react';
+import React, { useRef, useCallback, useMemo, memo, ReactNode, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import color from 'color';
 import {
   ChapterBookmarkButton,
   DownloadButton,
 } from './Chapter/ChapterDownloadButtons';
+import { Button, IconButtonV2 } from '@components';
 import { ThemeColors } from '@theme/types';
 import { ChapterInfo } from '@database/types';
 import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons';
@@ -59,35 +60,65 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
   const { id, name, unread, releaseTime, bookmark, chapterNumber, progress } =
     chapter;
 
+  // Memoized styles
+  const leftActionStyle = useMemo(
+    () => [styles.buttonGroup, { backgroundColor: theme.inverseSurface }],
+    [theme.inverseSurface],
+  );
+  const rightActionStyle = useMemo(
+    () => [styles.buttonGroup, { backgroundColor: theme.error }],
+    [theme.error],
+  );
+
   isBookmarked ??= bookmark;
+
+  const swipeableRef = useRef<Swipeable>(null);
+
+  // Memoized render actions
+  const renderLeftActions = useCallback(
+    (_progress: any, _dragX: any, ref: any) => (
+      <View style={leftActionStyle}>
+        <IconButtonV2
+          name="earth-box-plus"
+          size={22}
+          color={theme.primary}
+          onPress={() => {
+            swipeableRef.current?.close();
+            setAddModalVisible(true);
+          }}
+          theme={theme}
+        />
+      </View>
+    ),
+    [leftActionStyle, theme, setAddModalVisible],
+  );
+
+  const renderRightActions = useCallback(
+    (_progress: any, _dragX: any, ref: any) => (
+      <View style={rightActionStyle}>
+        <IconButtonV2
+          name="delete"
+          size={22}
+          color={theme.onError}
+          onPress={() => {
+            swipeableRef.current?.close();
+            handleDeleteChapter?.(chapter);
+          }}
+          theme={theme}
+        />
+      </View>
+    ),
+    [rightActionStyle, theme, handleDeleteChapter],
+  );
 
   return (
     <>
       <Swipeable
-        renderLeftActions={() => (
-          <View
-            style={{
-              backgroundColor: 'red',
-              justifyContent: 'center',
-              padding: 20,
-            }}
-          >
-            <Text style={{ color: 'white' }}>Delete</Text>
-          </View>
-        )}
-        renderRightActions={() => (
-          <View
-            style={{
-              backgroundColor: 'green',
-              justifyContent: 'center',
-              padding: 20,
-            }}
-          >
-            <Text style={{ color: 'white' }}>Add</Text>
-          </View>
-        )}
-        onSwipeableLeftOpen={() => handleDeleteChapter?.(chapter)}
-        onSwipeableRightOpen={() => setAddModalVisible(true)}
+        ref={swipeableRef}
+        dragOffsetFromLeftEdge={30}
+        dragOffsetFromRightEdge={30}
+        renderLeftActions={renderLeftActions}
+        renderRightActions={renderRightActions}
       >
         <View key={'chapterItem' + id}>
           <Pressable
@@ -148,7 +179,7 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
                         : theme.onSurface,
                       flex: 1,
                     }}
-                    numberOfLines={1}
+                    numberOfLines={2}
                     ellipsizeMode="tail"
                   >
                     {showChapterTitles
@@ -156,6 +187,7 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
                       : getString('novelScreen.chapterChapnum', {
                           num: chapterNumber,
                         })}
+                    {chapter.path ? ` — ${chapter.path}` : ''}
                   </Text>
                 </View>
                 <View
