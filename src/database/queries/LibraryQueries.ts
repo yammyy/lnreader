@@ -42,10 +42,7 @@ export const getLibraryWithCategory = (
       categoryQuery += ` AND categoryId = ${categoryId}`;
   }
 
-  const idRows = getAllSync<{ novelId: number }>([
-    categoryQuery,
-    preparedArgument,
-  ]);
+  const idRows = getAllSync<{ novelId: number }>([categoryQuery, []]);
 
   if (!idRows || idRows.length === 0) return [];
 
