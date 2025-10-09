@@ -19,5 +19,6 @@ export const createCategoryTriggerQuery = `
 export const createCategoryDefaultQuery = `
 INSERT INTO Category (id, name, sort) VALUES 
   (1, "${getString('categories.default')}", 1),
-  (2, "${getString('categories.local')}", 2)
+  (2, "${getString('categories.local')}", 2),
+  (-1, "${getString('categories.dropped')}", -1)
 `;

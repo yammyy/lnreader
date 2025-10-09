@@ -147,6 +147,7 @@
     "emptyMsg": "Sie haben keine Kategorien. Tippen Sie auf die Plus-Schaltfläche, um eine für die Organisation Ihrer Bibliothek zu erstellen",
     "header": "Kategorien bearbeiten",
     "local": "Local",
+    "dropped": "Dropped",
     "setCategories": "Kategorien festlegen",
     "setModalEmptyMsg": "Sie haben keine Kategorien. Tippen Sie auf die Plus-Schaltfläche, um eine für die Organisation Ihrer Bibliothek zu erstellen"
   },

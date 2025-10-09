@@ -4,52 +4,52 @@ import { getAllAsync, getFirstAsync } from '../utils/helpers';
 
 const getLibraryStatsQuery = `
   SELECT COUNT(*) as novelsCount, COUNT(DISTINCT pluginId) as sourcesCount
-  FROM Novel
-  WHERE inLibrary = 1
+  FROM Novel join NovelCategory on Novel.id=NovelCategory.novelId
+  WHERE inLibrary = 1 and categoryId <> -1
   `;
 
 const getChaptersReadCountQuery = `
   SELECT COUNT(*) as chaptersRead
   FROM Chapter
-  JOIN Novel
-  ON Chapter.novelId = Novel.id
-  WHERE Chapter.unread = 0 AND Novel.inLibrary = 1
-  `;
+  JOIN Novel ON Chapter.novelId = Novel.id
+  JOIN NovelCategory ON Novel.id = NovelCategory.novelId
+  WHERE Chapter.unread = 0 AND Novel.inLibrary = 1 AND categoryId <> -1
+`;
 
 const getChaptersTotalCountQuery = `
   SELECT COUNT(*) as chaptersCount
   FROM Chapter
-  JOIN Novel
-  ON Chapter.novelId = Novel.id
-  WHERE Novel.inLibrary = 1
-  `;
+  JOIN Novel ON Chapter.novelId = Novel.id
+  JOIN NovelCategory ON Novel.id = NovelCategory.novelId
+  WHERE Novel.inLibrary = 1 AND categoryId <> -1
+`;
 
 const getChaptersUnreadCountQuery = `
   SELECT COUNT(*) as chaptersUnread
   FROM Chapter
-  JOIN Novel
-  ON Chapter.novelId = Novel.id
-  WHERE Chapter.unread = 1 AND Novel.inLibrary = 1
-  `;
+  JOIN Novel ON Chapter.novelId = Novel.id
+  JOIN NovelCategory ON Novel.id = NovelCategory.novelId
+  WHERE Chapter.unread = 1 AND Novel.inLibrary = 1 AND categoryId <> -1
+`;
 
 const getChaptersDownloadedCountQuery = `
   SELECT COUNT(*) as chaptersDownloaded
   FROM Chapter
-  JOIN Novel
-  ON Chapter.novelId = Novel.id
-  WHERE Chapter.isDownloaded = 1 AND Novel.inLibrary = 1
-  `;
+  JOIN Novel ON Chapter.novelId = Novel.id
+  JOIN NovelCategory ON Novel.id = NovelCategory.novelId
+  WHERE Chapter.isDownloaded = 1 AND Novel.inLibrary = 1 AND categoryId <> -1
+`;
 
 const getNovelGenresQuery = `
   SELECT genres
-  FROM Novel
-  WHERE Novel.inLibrary = 1
+  FROM Novel join NovelCategory on Novel.id=NovelCategory.novelId
+  WHERE Novel.inLibrary = 1 and categoryId <> -1
   `;
 
 const getNovelStatusQuery = `
   SELECT status
-  FROM Novel
-  WHERE Novel.inLibrary = 1
+  FROM Novel join NovelCategory on Novel.id=NovelCategory.novelId
+  WHERE Novel.inLibrary = 1 and categoryId <> -1
   `;
 
 export const getLibraryStatsFromDb = async (): Promise<LibraryStats> => {

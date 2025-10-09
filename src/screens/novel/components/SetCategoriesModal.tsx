@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Divider, Portal } from 'react-native-paper';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 
@@ -30,6 +30,7 @@ const SetCategoryModal: React.FC<SetCategoryModalProps> = ({
   onSuccess,
   onEditCategories,
 }) => {
+  const { height } = useWindowDimensions();
   const theme = useTheme();
   const { navigate } = useNavigation<NavigationProp<RootStackParamList>>();
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
@@ -55,6 +56,9 @@ const SetCategoryModal: React.FC<SetCategoryModalProps> = ({
           closeModal();
           setSelectedCategories([]);
         }}
+        contentContainerStyle={[
+          { maxHeight: height * 0.85 }, // limit modal height
+        ]}
       >
         <Text style={[styles.modalTitle, { color: theme.onSurface }]}>
           {getString('categories.setCategories')}

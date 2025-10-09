@@ -147,6 +147,7 @@
     "emptyMsg": "Nemáte žádné kategorie. Klepněte na tlačítko plus pro vytvoření nové kategorie",
     "header": "Upravit kategorie",
     "local": "Local",
+    "dropped": "Dropped",
     "setCategories": "Nastavit kategorie",
     "setModalEmptyMsg": "Nemáte žádné kategorie. Klepněte na tlačítko editovat pro vytvoření nové kategorie"
   },

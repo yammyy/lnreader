@@ -147,6 +147,7 @@
     "emptyMsg": "You have no categories. Tap the plus button to create one for organizing your library",
     "header": "編輯類別",
     "local": "Local",
+    "dropped": "Dropped",
     "setCategories": "設定分類",
     "setModalEmptyMsg": "You have no categories. Tap the Edit button to create one for organizing your library"
   },

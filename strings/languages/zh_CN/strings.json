@@ -147,6 +147,7 @@
     "emptyMsg": "您目前还没有分类。点击加号按钮来创建一个分类以组织您的书库",
     "header": "编辑分类",
     "local": "本地",
+    "dropped": "Dropped",
     "setCategories": "设置分类",
     "setModalEmptyMsg": "您目前还没有分类。点击编辑按钮来创建一个分类以组织您的书库"
   },

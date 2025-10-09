@@ -55,7 +55,7 @@ const beforeDeleteCategoryQuery = `
 const deleteCategoryQuery = 'DELETE FROM Category WHERE id = ?';
 
 export const deleteCategoryById = (category: Category): void => {
-  if (category.sort === 1 || category.id === 2) {
+  if (category.sort === 1 || category.id === 2 || category.id === -1) {
     return showToast(getString('categories.cantDeleteDefault'));
   }
   runSync([

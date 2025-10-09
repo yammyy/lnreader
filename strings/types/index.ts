@@ -131,6 +131,7 @@ export interface StringMap {
   'categories.emptyMsg': 'string';
   'categories.header': 'string';
   'categories.local': 'string';
+  'categories.dropped': 'string';
   'categories.setCategories': 'string';
   'categories.setModalEmptyMsg': 'string';
   'repositories.emptyMsg': 'string';

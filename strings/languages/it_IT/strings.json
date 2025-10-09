@@ -147,6 +147,7 @@
     "emptyMsg": "Non hai categorie. Tocca il pulsante + per crearne una per organizzare la tua libreria",
     "header": "Modifica categorie",
     "local": "Local",
+    "dropped": "Dropped",
     "setCategories": "Imposta categorie",
     "setModalEmptyMsg": "Non hai categorie. Tocca il pulsante Modifica per crearne una per organizzare la tua libreria"
   },

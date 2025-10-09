@@ -147,6 +147,7 @@
     "emptyMsg": "Kategoriniz bulunmuyor.  Kitaplığınızı düzenlemek için bir tane oluşturmak için artı butonuna basın",
     "header": "Kategorileri düzenle",
     "local": "Local",
+    "dropped": "Dropped",
     "setCategories": "Kategorileri ayarla",
     "setModalEmptyMsg": "Hiç kategoriniz yok. Kitaplığınızı düzenlemek üzere bir tane oluşturmak için Düzenle düğmesine dokunun."
   },
