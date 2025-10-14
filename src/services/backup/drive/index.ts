@@ -81,18 +81,20 @@ export const driveRestore = async (
   }));
 
   const zipDataFile = await exists(ZipBackupName.DATA, false, backupFolder.id);
-  const zipDownloadFile = await exists(
-    ZipBackupName.DOWNLOAD,
-    false,
-    backupFolder.id,
-  );
-  if (!zipDataFile || !zipDownloadFile) {
+  console.log('zipDataFile', ZipBackupName.DATA, '=>', zipDataFile);
+
+  const zipDownloadFile = await exists(ZipBackupName.DOWNLOAD, false, backupFolder.id);
+  console.log('zipDownloadFile', ZipBackupName.DOWNLOAD, '=>', zipDownloadFile);
+
+  if (!zipDataFile && !zipDownloadFile) {
+    console.log('Both zipDataFile and zipDownloadFile are missing in folder', backupFolder.id);
     throw new Error(getString('backupScreen.invalidBackupFolder'));
   }
 
-  await download(zipDataFile, CACHE_DIR_PATH);
-  await sleep(500);
-
+  if (zipDataFile) {
+    await download(zipDataFile, CACHE_DIR_PATH);
+    await sleep(500);
+  }
   setMeta(meta => ({
     ...meta,
     progress: 1 / 3,
@@ -108,7 +110,9 @@ export const driveRestore = async (
     progressText: getString('backupScreen.downloadingDownloadedFiles'),
   }));
 
-  await download(zipDownloadFile, ROOT_STORAGE);
+  if (zipDownloadFile) {
+    await download(zipDownloadFile, ROOT_STORAGE);
+  }
 
   setMeta(meta => ({
     ...meta,

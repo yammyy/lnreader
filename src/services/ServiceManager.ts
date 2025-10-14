@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 
 import { getMMKVObject, setMMKVObject } from '@utils/mmkv/mmkv';
 import { importEpub } from './epub/import';
+import { importChapter } from './local/importChapter';
 import { getString } from '@strings/translations';
 import { updateLibrary } from './updates';
 import { DriveFile } from '@api/drive/types';
@@ -24,7 +25,8 @@ type taskNames =
   | 'SELF_HOST_BACKUP'
   | 'SELF_HOST_RESTORE'
   | 'MIGRATE_NOVEL'
-  | 'DOWNLOAD_CHAPTER';
+  | 'DOWNLOAD_CHAPTER'
+  | 'IMPORT_CHAPTER';
 
 export type BackgroundTask =
   | {
@@ -46,10 +48,22 @@ export type BackgroundTask =
   | { name: 'SELF_HOST_BACKUP'; data: SelfHostData }
   | { name: 'SELF_HOST_RESTORE'; data: SelfHostData }
   | { name: 'MIGRATE_NOVEL'; data: MigrateNovelData }
-  | DownloadChapterTask;
+  | DownloadChapterTask
+  | ImportChapterTask;
 export type DownloadChapterTask = {
   name: 'DOWNLOAD_CHAPTER';
   data: { chapterId: number; novelName: string; chapterName: string };
+};
+export type ImportChapterTask = {
+  name: 'IMPORT_CHAPTER';
+  data: {
+    pluginId: number;
+    novelId: number;
+    chapterId: number;
+    chapterName: string;
+    filename: string;
+    uri: string;
+  };
 };
 
 export type BackgroundTaskMetadata = {
@@ -93,7 +107,7 @@ export default class ServiceManager {
 
   isMultiplicableTask(task: BackgroundTask) {
     return (
-      ['DOWNLOAD_CHAPTER', 'IMPORT_EPUB', 'MIGRATE_NOVEL'] as Array<
+      ['DOWNLOAD_CHAPTER', 'IMPORT_EPUB', 'MIGRATE_NOVEL', 'IMPORT_CHAPTER'] as Array<
         BackgroundTask['name']
       >
     ).includes(task.name);
@@ -237,6 +251,8 @@ export default class ServiceManager {
         return migrateNovel(task.task.data, this.setMeta.bind(this));
       case 'DOWNLOAD_CHAPTER':
         return downloadChapter(task.task.data, this.setMeta.bind(this));
+      case 'IMPORT_CHAPTER':
+        return importChapter(task.task.data, this.setMeta.bind(this));
     }
   }
 
@@ -252,6 +268,7 @@ export default class ServiceManager {
       'SELF_HOST_RESTORE': 0,
       'MIGRATE_NOVEL': 0,
       'DOWNLOAD_CHAPTER': 0,
+      'IMPORT_CHAPTER': 0,
     };
     const startingTasks = manager.getTaskList();
     const tasksSet = new Set(startingTasks.map(t => t.id));
@@ -304,6 +321,10 @@ export default class ServiceManager {
 
   getTaskName(task: BackgroundTask) {
     switch (task.name) {
+      case 'IMPORT_CHAPTER':
+        return 'Import Chapter ' +
+          task.data.chapterName +
+          ' / ' + task.data.filename;
       case 'DOWNLOAD_CHAPTER':
         return 'Download ' + task.data.novelName;
       case 'IMPORT_EPUB':

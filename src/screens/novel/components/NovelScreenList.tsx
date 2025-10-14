@@ -34,7 +34,11 @@ import { StorageAccessFramework } from 'expo-file-system';
 import {
   deleteChapterFromDb,
   insertChapterAndAdjustPositions,
+  updateChapterPath,
 } from '@database/queries/ChapterQueries';
+import * as DocumentPicker from 'expo-document-picker'; // actual picker functions
+import { DocumentPickerResult } from 'expo-document-picker'; // for TS types
+import ServiceManager from '@services/ServiceManager';
 
 type NovelScreenListProps = {
   headerOpacity: SharedValue<number>;
@@ -110,6 +114,8 @@ const NovelScreenList = ({
   const { top: topInset, bottom: bottomInset } = useSafeAreaInsets();
 
   const { downloadQueue, downloadChapter } = useDownload();
+
+  const [refreshFlag, setRefreshFlag] = useState(0);
 
   const [isFabExtended, setIsFabExtended] = useState(true);
 
@@ -194,6 +200,55 @@ const NovelScreenList = ({
     }
   };
 
+const handleImportChapter = async (chapter: ChapterInfo, index: number, pluginId: number) => {
+  try {
+
+    // Mark as "downloading/importing"
+    updateChapter?.(index, { isDownloaded: undefined });
+
+    const file = await DocumentPicker.getDocumentAsync({
+      type: 'text/html',
+      copyToCacheDirectory: true,
+      multiple: false, // if you want only one file at a time
+    });
+
+    if (file.type === 'cancel') {
+      // user canceled the picker
+      return;
+    }
+
+    // ✅ Correct structure — the selected file is in file.assets[0]
+    const selectedFile = file.assets?.[0];
+    if (!selectedFile) {
+      console.error('No file selected or picker returned unexpected result:', file);
+      return;
+    }
+
+    console.log('Picked file name:', selectedFile.name);
+    console.log('Picked file uri:', selectedFile.uri);
+
+    ServiceManager.manager.addTask({
+      name: 'IMPORT_CHAPTER',
+      data: {
+        pluginId: pluginId,
+        novelId: chapter.novelId,
+        chapterId: chapter.id,
+        chapterName: chapter.name,
+        filename: selectedFile.name,
+        uri: selectedFile.uri,
+      },
+    });
+
+    // When done → mark as downloaded
+    updateChapter?.(index, { isDownloaded: true });
+
+  } catch (e) {
+    console.error(e);
+    updateChapter?.(index, { isDownloaded: false });
+  }
+};
+
+
 const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: string }) => {
   try {
     await insertChapterAndAdjustPositions(novel.id, {
@@ -211,6 +266,22 @@ const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: s
     showToast('Error adding chapter: ' + err.message);
   }
 };
+  const handleEditChapter = async (
+    chapter: ChapterInfo & { path?: string; name?: string },
+  ) => {
+    try {
+      await updateChapterPath(novel.id, {
+        id: chapter.id, // required to know which row to update
+        path: chapter.path,
+        name: chapter.name,
+      });
+
+      await getNovel(); // refresh chapter list
+      showToast('Chapter updated successfully');
+    } catch (err: any) {
+      showToast('Error updating chapter: ' + err.message);
+    }
+  };
 
   const onSelectLongPress = (chapter: ChapterInfo) => {
     if (selected.length === 0) {
@@ -340,6 +411,7 @@ const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: s
           novel.id,
           loading,
           downloadQueue.length,
+          refreshFlag,
         ]}
         // ListEmptyComponent={ListEmptyComponent}
         ListFooterComponent={!fetching ? undefined : ListEmptyComponent}
@@ -349,6 +421,7 @@ const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: s
           }
           return (
             <ChapterItem
+              index={index}
               isDownloading={downloadQueue.some(
                 c => c.task.data.chapterId === item.id,
               )}
@@ -356,6 +429,7 @@ const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: s
               isLocal={novel.isLocal}
               theme={theme}
               chapter={item}
+              pluginId={novel.pluginId}
               showChapterTitles={showChapterTitles}
               deleteChapter={() => deleteChapter(item)}
               downloadChapter={() => downloadChapter(novel, item)}
@@ -364,6 +438,7 @@ const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: s
               onSelectLongPress={onSelectLongPress}
               navigateToChapter={navigateToChapter}
               handleDeleteChapter={handleDeleteChapter}
+              handleImportChapter={handleImportChapter}
               handleAddChapter={handleAddChapter}
               novelName={novel.name}
               setChapterDownloaded={(value: boolean) =>

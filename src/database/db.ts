@@ -59,6 +59,7 @@ export const createTables = () => {
       db.execSync('PRAGMA user_version = 1');
     });
   } else {
+    db.runSync(createCategoryDefaultQuery);
     if (userVersion < 1) {
       updateToDBVersion1();
     }

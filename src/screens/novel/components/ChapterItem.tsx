@@ -15,6 +15,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import AddChapterModal from './AddChapterModal';
 
 interface ChapterItemProps {
+  index: number;
   isDownloading?: boolean;
   isBookmarked?: boolean;
   chapter: ChapterInfo;
@@ -28,6 +29,7 @@ interface ChapterItemProps {
   navigateToChapter: (chapter: ChapterInfo) => void;
   setChapterDownloaded?: (value: boolean) => void;
   handleDeleteChapter?: (chapter: ChapterInfo) => void;
+  handleImportChapter?: (chapter: ChapterInfo) => void;
   handleAddChapter?: (chapter: ChapterInfo & { path?: string; name?: string }) => void;
   left?: ReactNode;
   isLocal: boolean;
@@ -36,9 +38,11 @@ interface ChapterItemProps {
 }
 
 const ChapterItem: React.FC<ChapterItemProps> = ({
+  index,
   isDownloading,
   isBookmarked,
   chapter,
+  pluginId,
   theme,
   showChapterTitles,
   downloadChapter,
@@ -49,6 +53,7 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
   navigateToChapter,
   setChapterDownloaded,
   handleDeleteChapter,
+  handleImportChapter,
   handleAddChapter,
   isLocal,
   left,
@@ -56,6 +61,8 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
   novelName,
 }) => {
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editChapter, setEditChapter] = useState<{ path: string; name: string } | null>(null);
 
   const { id, name, unread, releaseTime, bookmark, chapterNumber, progress } =
     chapter;
@@ -88,9 +95,20 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
           }}
           theme={theme}
         />
+        <IconButtonV2
+          name="square-edit-outline"
+          size={22}
+          color={theme.secondary}
+          onPress={() => {
+            swipeableRef.current?.close();
+            setEditChapter({ path: chapter.path ?? '', name: chapter.name ?? '' });
+            setEditModalVisible(true);
+          }}
+          theme={theme}
+        />
       </View>
     ),
-    [leftActionStyle, theme, setAddModalVisible],
+    [leftActionStyle, theme, setAddModalVisible, chapter, setEditModalVisible, setEditChapter],
   );
 
   const renderRightActions = useCallback(
@@ -106,16 +124,26 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
           }}
           theme={theme}
         />
+        <IconButtonV2
+          name="file-edit-outline"
+          size={22}
+          color={theme.secondary}
+          onPress={() => {
+            swipeableRef.current?.close();
+            handleImportChapter?.(chapter, index, pluginId);
+          }}
+          theme={theme}
+        />
       </View>
     ),
-    [rightActionStyle, theme, handleDeleteChapter],
+    [rightActionStyle, theme, handleDeleteChapter, handleImportChapter],
   );
 
   return (
     <>
       <Swipeable
         ref={swipeableRef}
-        dragOffsetFromLeftEdge={30}
+        dragOffsetFromLeftEdge={60}
         dragOffsetFromRightEdge={30}
         renderLeftActions={renderLeftActions}
         renderRightActions={renderRightActions}
@@ -256,6 +284,21 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
             name,
           });
         }}
+        title="Add Chapter"
+      />
+      <AddChapterModal
+        visible={editModalVisible}
+        onDismiss={() => setEditModalVisible(false)}
+        onSave={(path, name) => {
+          handleAddChapter?.({
+            ...chapter,
+            path,
+            name,
+          });
+        }}
+        initialPath={editChapter?.path}
+        initialName={editChapter?.name}
+        title="Edit Chapter"
       />
     </>
   );

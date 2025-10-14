@@ -57,7 +57,7 @@ const SetCategoryModal: React.FC<SetCategoryModalProps> = ({
           setSelectedCategories([]);
         }}
         contentContainerStyle={[
-          { maxHeight: height * 0.85 }, // limit modal height
+          { maxHeight: height * 0.60 }, // limit modal height
         ]}
       >
         <Text style={[styles.modalTitle, { color: theme.onSurface }]}>

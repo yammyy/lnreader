@@ -96,6 +96,32 @@ export const insertChapterAndAdjustPositions = async (
   });
 };
 
+export const updateChapterPath = async (
+  novelId: number,
+  chapter: { id?: number; path?: string; name?: string },
+) => {
+  if (!chapter.id) throw new Error('Chapter ID is required to update path and name');
+
+  const updateStatement = db.prepareSync(`
+    UPDATE Chapter
+    SET
+      path = COALESCE(?, path),
+      name = COALESCE(?, name)
+    WHERE id = ? AND novelId = ?;
+  `);
+
+  try {
+    updateStatement.executeSync(
+      chapter.path ?? null,
+      chapter.name ?? null,
+      chapter.id,
+      novelId,
+    );
+  } finally {
+    updateStatement.finalizeSync();
+  }
+};
+
 export const markChapterRead = (chapterId: number) =>
   db.runAsync('UPDATE Chapter SET `unread` = 0 WHERE id = ?', chapterId);
 
