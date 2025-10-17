@@ -52,6 +52,52 @@ export const insertChapters = async (
     .catch();
 };
 
+export const insertChaptersAndReturnIndex = async (
+  novelId: number,
+  chapters?: ChapterItem[],
+): Promise<number[]> => {
+  if (!chapters?.length) return [];
+
+  await db.withTransactionAsync(async () => {
+    const statement = db.prepareSync(`
+      INSERT INTO Chapter (path, name, releaseTime, novelId, chapterNumber, page, position)
+      VALUES (?, ?, ?, ${novelId}, ?, ?, ?)
+      ON CONFLICT(path, novelId) DO UPDATE SET
+        page = excluded.page,
+        position = excluded.position,
+        name = excluded.name,
+        releaseTime = excluded.releaseTime,
+        chapterNumber = excluded.chapterNumber;
+    `);
+
+    try {
+      chapters.forEach((chapter, index) => {
+        statement.executeSync(
+          chapter.path,
+          chapter.name ?? `Chapter ${index + 1}`,
+          chapter.releaseTime ?? '',
+          chapter.chapterNumber ?? null,
+          chapter.page ?? '1',
+          index,
+        );
+      });
+    } finally {
+      statement.finalizeSync();
+    }
+  });
+
+  // After insert, get the IDs
+  const ids: number[] = chapters.map(chapter => {
+    const row = db.getFirstSync<{ id: number }>(
+      `SELECT id FROM Chapter WHERE novelId = ? AND path = ?`,
+      [novelId, chapter.path],
+    );
+    return row?.id ?? 0;
+  });
+
+  return ids;
+};
+
 export const insertChapterAndAdjustPositions = async (
   novelId: number,
   newChapter: ChapterItem,
@@ -319,6 +365,12 @@ export const clearUpdates = () =>
 
 // #endregion
 // #region Selectors
+
+export const getNovelPluginId = (targetNovelId: number) =>
+  db.getFirstAsync<{ pluginId: number }>(
+    'SELECT pluginId FROM Novel WHERE id = ?',
+    targetNovelId,
+  );
 
 export const getCustomPages = (novelId: number) =>
   db.getAllSync<{ page: string }>(

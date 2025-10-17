@@ -30,6 +30,7 @@ import { ThemeColors } from '@theme/types';
 import { SafeAreaView } from '@components';
 import { useNovelContext } from './NovelContext';
 import { FlashList } from '@shopify/flash-list';
+import MoveChaptersModal from './components/MoveChaptersModal';
 
 const Novel = ({ route, navigation }: NovelScreenProps) => {
   const {
@@ -50,6 +51,7 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
     markPreviousChaptersUnread,
     refreshChapters,
     deleteChapters,
+    handleMoveChapters,
   } = useNovelContext();
 
   const theme = useTheme();
@@ -57,6 +59,7 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
 
   const [selected, setSelected] = useState<ChapterInfo[]>([]);
   const [editInfoModal, showEditInfoModal] = useState(false);
+  const [moveChaptersModal, setMoveChaptersModal] = useState(false);
 
   const chapterListRef = useRef<FlashList<ChapterInfo> | null>(null);
 
@@ -147,6 +150,13 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
       onPress: () => {
         bookmarkChapters(selected);
         setSelected([]);
+      },
+    });
+
+    list.push({
+      icon: 'transfer-right',
+      onPress: () => {
+        setMoveChaptersModal(true);
       },
     });
 
@@ -361,6 +371,19 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
                   chapters={chapters}
                   theme={theme}
                   downloadChapters={downloadChapters}
+                />
+                <MoveChaptersModal
+                  visible={moveChaptersModal}
+                  onDismiss={() => setMoveChaptersModal(false)}
+                  onMove={(targetNovelId) => {
+                    console.log("Start handling moving");
+                    handleMoveChapters?.(
+                      selected,
+                      targetNovelId,
+                    );
+                    console.log("Unselect all");
+                    setSelected([]);
+                  }}
                 />
               </>
             )}

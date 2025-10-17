@@ -74,3 +74,43 @@ export const importChapter = async (
   }
 
 };
+
+export const moveChapterFiles = async (oldPluginId: number, newPluginId: number,
+                                oldChapterId: number, newChapterId: number,
+                                oldNovelId: number, targetNovelId: number) => {
+  const oldDir = `${NOVEL_STORAGE}/${oldPluginId}/${oldNovelId}/${oldChapterId}`;
+  const newDir = `${NOVEL_STORAGE}/${newPluginId}/${targetNovelId}/${newChapterId}`;
+
+  console.log("Old dir: " + oldDir);
+  console.log("New dir: " + newDir);
+
+  if (!NativeFile.exists(oldDir)) {
+    console.warn(`Old chapter folder does not exist: ${oldDir}`);
+    return;
+  }
+
+  if (NativeFile.exists(newDir)) {
+    NativeFile.unlink(newDir); // remove old copy in target
+  }
+  NativeFile.mkdir(newDir);
+
+  console.log('Created:', newDir);
+
+  // Add .nomedia file
+  const nomediaPath = newDir + '/.nomedia';
+  NativeFile.writeFile(nomediaPath, ',');
+
+  const oldFilePath = `${oldDir}/index.html`;
+  const newFilePath = `${newDir}/index.html`;
+  NativeFile.copyFile(oldFilePath, newFilePath);
+
+  await db.runAsync(
+    `UPDATE Chapter
+     SET isDownloaded = 1
+     WHERE id = ?`,
+    newChapterId
+  );
+
+  console.log('File name:', newFilePath);
+};
+

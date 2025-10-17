@@ -26,8 +26,11 @@ import {
   getChapterCount,
   getPageChaptersBatched,
   updateChapterProgress as _updateChapterProgress,
+  insertChaptersAndReturnIndex,
+  getNovelPluginId,
 } from '@database/queries/ChapterQueries';
 import { fetchNovel, fetchPage } from '@services/plugin/fetch';
+import { moveChapterFiles } from '@services/local/importChapter';
 import { showToast } from '@utils/showToast';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getString } from '@strings/translations';
@@ -437,6 +440,49 @@ const deleteChaptersFromDb = useCallback(
   [getNovel]
 );
 
+const handleMoveChapters = useCallback(
+  async (_chapters: ChapterInfo[], targetNovelId) => {
+    console.log(_chapters, targetNovelId);
+
+    if (!_chapters.length) return;
+
+    const chapterIds = _chapters.map(ch => ch.id);
+
+    console.log("Target ID = "+targetNovelId);
+
+    const newChapterIds = await insertChaptersAndReturnIndex(targetNovelId, _chapters);
+    console.log(newChapterIds);
+
+    const { pluginId: newPluginId } = await getNovelPluginId(targetNovelId);
+    console.log('Plugin ID of target novel:', newPluginId);
+
+    const { pluginId: oldPluginId } = await getNovelPluginId(_chapters[0].novelId);
+    console.log('Plugin ID of source novel:', oldPluginId);
+
+    // 3️⃣ Move each chapter’s files
+    for (let i = 0; i < _chapters.length; i++) {
+      const oldChapter = _chapters[i];
+      const newChapterId = newChapterIds[i];
+
+      console.log("old: "+oldPluginId+"/"+oldChapter.novelId+"/"+oldChapter.id+
+        "   NEW: "+newPluginId+"/"+targetNovelId+"/"+newChapterId);
+
+      await moveChapterFiles(
+        oldPluginId,   // old plugin
+        newPluginId,           // new plugin
+        oldChapter.id,         // old chapter ID
+        newChapterId,          // new chapter ID
+        oldChapter.novelId,    // old novel
+        targetNovelId,         // new novel
+      );
+    }
+
+    // Refresh chapters list from DB instead of manual filtering
+    await getNovel(); // or whatever query refetches chapters
+  },
+  [getNovel]
+);
+
   const markPreviouschaptersRead = useCallback(
     (chapterId: number) => {
       if (novel) {
@@ -678,6 +724,7 @@ const deleteChaptersFromDb = useCallback(
       updateChapterProgress,
       deleteChapter,
       deleteChapters,
+      handleMoveChapters,
     }),
     [
       loading,
@@ -709,6 +756,7 @@ const deleteChaptersFromDb = useCallback(
       updateChapterProgress,
       deleteChapter,
       deleteChapters,
+      handleMoveChapters,
     ],
   );
 };
