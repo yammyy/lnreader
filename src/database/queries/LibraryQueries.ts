@@ -29,7 +29,8 @@ export const getLibraryNovelsFromDb = (
   return getAllSync<NovelInfo>([query, [searchText ?? '']]);
 };
 
-const getNovelOfCategoryQuery = 'SELECT DISTINCT novelId FROM NovelCategory WHERE 1 = 1';
+const getNovelOfCategoryQuery =
+  'SELECT DISTINCT novelId FROM NovelCategory WHERE 1 = 1';
 const getNovelsFromIDListQuery = 'SELECT * FROM Novel WHERE inLibrary = 1 ';
 
 export const getLibraryWithCategory = (
@@ -39,7 +40,7 @@ export const getLibraryWithCategory = (
   let categoryQuery = getNovelOfCategoryQuery;
 
   if (categoryId) {
-      categoryQuery += ` AND categoryId = ${categoryId}`;
+    categoryQuery += ` AND categoryId = ${categoryId}`;
   }
 
   const idRows = getAllSync<{ novelId: number }>([categoryQuery, []]);
@@ -53,7 +54,7 @@ export const getLibraryWithCategory = (
   novelQuery += ` AND id IN (${novelIds})`;
 
   if (onlyUpdateOngoingNovels) {
-    novelQuery += ' AND status = \'Ongoing\'';
+    novelQuery += " AND status = 'Ongoing'";
   }
 
   const res = getAllSync<LibraryNovelInfo>([novelQuery, []]);
