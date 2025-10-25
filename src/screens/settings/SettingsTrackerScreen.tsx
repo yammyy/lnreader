@@ -1,20 +1,87 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Portal, Text, Button, Provider } from 'react-native-paper';
+import { View, StyleSheet, Image } from 'react-native';
+import {
+  Portal,
+  Text,
+  Button,
+  Provider,
+  List as PaperList,
+} from 'react-native-paper';
 
 import { getTracker, useTheme, useTracker } from '@hooks/persisted';
 import { Appbar, List, Modal, SafeAreaView } from '@components';
 import { TrackerSettingsScreenProps } from '@navigators/types';
 import { getString } from '@strings/translations';
+import MangaUpdatesLoginDialog from './components/MangaUpdatesLoginDialog';
+import { authenticateWithCredentials } from '@services/Trackers/mangaUpdates';
+import { showToast } from '@utils/showToast';
+
+const AniListLogo = () => (
+  <View style={styles.logoContainer}>
+    <Image
+      source={require('../../../assets/anilist.png')}
+      style={styles.trackerLogo}
+    />
+  </View>
+);
+
+const MyAnimeListLogo = () => (
+  <View style={styles.logoContainer}>
+    <Image
+      source={require('../../../assets/mal.png')}
+      style={styles.trackerLogo}
+    />
+  </View>
+);
+
+const MangaUpdatesLogo = () => (
+  <View style={styles.logoContainer}>
+    <Image
+      source={require('../../../assets/mangaupdates.png')}
+      style={styles.trackerLogo}
+    />
+  </View>
+);
 
 const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
   const theme = useTheme();
-  const { tracker, removeTracker, setTracker } = useTracker();
+  const { isTrackerAuthenticated, setTracker, removeTracker, getTrackerAuth } =
+    useTracker();
 
-  // Tracker Modal
+  // Tracker Modal for logout confirmation
+  const [logoutTrackerName, setLogoutTrackerName] = useState<string>('');
   const [visible, setVisible] = useState(false);
-  const showModal = () => setVisible(true);
-  const hideModal = () => setVisible(false);
+  const showModal = (trackerName: string) => {
+    setLogoutTrackerName(trackerName);
+    setVisible(true);
+  };
+  const hideModal = () => {
+    setVisible(false);
+    setLogoutTrackerName('');
+  };
+
+  // MangaUpdates Login Dialog
+  const [mangaUpdatesLoginVisible, setMangaUpdatesLoginVisible] =
+    useState(false);
+  const showMangaUpdatesLogin = () => setMangaUpdatesLoginVisible(true);
+  const hideMangaUpdatesLogin = () => setMangaUpdatesLoginVisible(false);
+
+  const handleMangaUpdatesLogin = async (
+    username: string,
+    password: string,
+  ) => {
+    try {
+      const auth = await authenticateWithCredentials(username, password);
+      setTracker('MangaUpdates', auth);
+      hideMangaUpdatesLogin();
+      showToast('Successfully logged in to MangaUpdates');
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error; // Let the dialog handle the error display
+      }
+      throw new Error('Failed to authenticate with MangaUpdates');
+    }
+  };
 
   return (
     <SafeAreaView excludeTop>
@@ -35,11 +102,24 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
             <List.SubHeader theme={theme}>
               {getString('trackingScreen.services')}
             </List.SubHeader>
-            <List.Item
+            <PaperList.Item
               title="AniList"
+              titleStyle={{ color: theme.onSurface }}
+              left={AniListLogo}
+              right={
+                isTrackerAuthenticated('AniList')
+                  ? () => (
+                      <PaperList.Icon
+                        color={theme.primary}
+                        icon="check"
+                        style={styles.iconStyle}
+                      />
+                    )
+                  : undefined
+              }
               onPress={async () => {
-                if (tracker) {
-                  showModal();
+                if (isTrackerAuthenticated('AniList')) {
+                  showModal('AniList');
                 } else {
                   const auth = await getTracker('AniList').authenticate();
                   if (auth) {
@@ -47,14 +127,27 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
                   }
                 }
               }}
-              right={tracker?.name === 'AniList' ? 'check' : undefined}
-              theme={theme}
+              rippleColor={theme.rippleColor}
+              style={styles.listItem}
             />
-            <List.Item
+            <PaperList.Item
               title="MyAnimeList"
+              titleStyle={{ color: theme.onSurface }}
+              left={MyAnimeListLogo}
+              right={
+                isTrackerAuthenticated('MyAnimeList')
+                  ? () => (
+                      <PaperList.Icon
+                        color={theme.primary}
+                        icon="check"
+                        style={styles.iconStyle}
+                      />
+                    )
+                  : undefined
+              }
               onPress={async () => {
-                if (tracker) {
-                  showModal();
+                if (isTrackerAuthenticated('MyAnimeList')) {
+                  showModal('MyAnimeList');
                 } else {
                   const auth = await getTracker('MyAnimeList').authenticate();
                   if (auth) {
@@ -62,11 +155,38 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
                   }
                 }
               }}
-              right={tracker?.name === 'MyAnimeList' ? 'check' : undefined}
-              theme={theme}
+              rippleColor={theme.rippleColor}
+              style={styles.listItem}
             />
-            {tracker?.name === 'MyAnimeList' &&
-            tracker?.auth.expiresAt < new Date(Date.now()) ? (
+            <PaperList.Item
+              title="MangaUpdates"
+              titleStyle={{ color: theme.onSurface }}
+              left={MangaUpdatesLogo}
+              right={
+                isTrackerAuthenticated('MangaUpdates')
+                  ? () => (
+                      <PaperList.Icon
+                        color={theme.primary}
+                        icon="check"
+                        style={styles.iconStyle}
+                      />
+                    )
+                  : undefined
+              }
+              onPress={() => {
+                if (isTrackerAuthenticated('MangaUpdates')) {
+                  showModal('MangaUpdates');
+                } else {
+                  showMangaUpdatesLogin();
+                }
+              }}
+              rippleColor={theme.rippleColor}
+              style={styles.listItem}
+            />
+            {isTrackerAuthenticated('MyAnimeList') &&
+            getTrackerAuth('MyAnimeList')?.auth?.expiresAt &&
+            getTrackerAuth('MyAnimeList')!.auth.expiresAt <
+              new Date(Date.now()) ? (
               <>
                 <List.Divider theme={theme} />
                 <List.SubHeader theme={theme}>
@@ -77,9 +197,10 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
                     getString('trackingScreen.revalidate') + ' Myanimelist'
                   }
                   onPress={async () => {
+                    const trackerAuth = getTrackerAuth('MyAnimeList');
                     const revalidate = getTracker('MyAnimeList')?.revalidate;
-                    if (revalidate) {
-                      const auth = await revalidate(tracker.auth);
+                    if (revalidate && trackerAuth) {
+                      const auth = await revalidate(trackerAuth.auth);
                       setTracker('MyAnimeList', auth);
                     }
                   }}
@@ -93,7 +214,7 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
             <Modal visible={visible} onDismiss={hideModal}>
               <Text style={[{ color: theme.onSurface }, styles.modalText]}>
                 {getString('trackingScreen.logOutMessage', {
-                  name: tracker?.name,
+                  name: logoutTrackerName,
                 })}
               </Text>
               <View style={styles.modalButtonRow}>
@@ -114,7 +235,7 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
                     styles.modalButtonLabel,
                   ]}
                   onPress={() => {
-                    removeTracker();
+                    removeTracker(logoutTrackerName as any);
                     hideModal();
                   }}
                 >
@@ -122,6 +243,11 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
                 </Button>
               </View>
             </Modal>
+            <MangaUpdatesLoginDialog
+              visible={mangaUpdatesLoginVisible}
+              onDismiss={hideMangaUpdatesLogin}
+              onSubmit={handleMangaUpdatesLogin}
+            />
           </Portal>
         </View>
       </Provider>
@@ -151,5 +277,21 @@ const styles = StyleSheet.create({
   modalButtonLabel: {
     letterSpacing: 0,
     textTransform: 'none',
+  },
+  logoContainer: {
+    paddingLeft: 16,
+    justifyContent: 'center',
+  },
+  trackerLogo: {
+    width: 32,
+    height: 32,
+    resizeMode: 'contain',
+    borderRadius: 4,
+  },
+  listItem: {
+    paddingVertical: 12,
+  },
+  iconStyle: {
+    margin: 0,
   },
 });

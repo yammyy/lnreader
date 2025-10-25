@@ -20,17 +20,47 @@ import {
 } from './tables/ChapterTable';
 
 import { createRepositoryTableQuery } from './tables/RepositoryTable';
-import { MMKVStorage } from '@utils/mmkv/mmkv';
+import { getErrorMessage } from '@utils/error';
 import { showToast } from '@utils/showToast';
+import { MigrationRunner } from './utils/migrationRunner';
+import { migrations } from './migrations';
 
 const dbName = 'lnreader.db';
 
 export const db = SQLite.openDatabaseSync(dbName);
 
-export const createTables = () => {
-  const isOnBoard = MMKVStorage.getBoolean('IS_ONBOARDED');
+/**
+ * Creates the initial database schema for fresh installations
+ * Sets up all tables, indexes, triggers and sets version to 1
+ */
+const createInitialSchema = () => {
+  db.execSync('PRAGMA journal_mode = WAL');
+  db.execSync('PRAGMA synchronous = NORMAL');
+  db.execSync('PRAGMA temp_store = MEMORY');
 
-  // These values are not persistent and need to be set on every app start
+  db.withTransactionSync(() => {
+    db.runSync(createNovelTableQuery);
+    db.runSync(createNovelIndexQuery);
+    db.runSync(createCategoriesTableQuery);
+    db.runSync(createCategoryDefaultQuery);
+    db.runSync(createNovelCategoryTableQuery);
+    db.runSync(createChapterTableQuery);
+    db.runSync(createCategoryTriggerQuery);
+    db.runSync(createChapterIndexQuery);
+    db.runSync(createRepositoryTableQuery);
+    db.runSync(createNovelTriggerQueryInsert);
+    db.runSync(createNovelTriggerQueryUpdate);
+    db.runSync(createNovelTriggerQueryDelete);
+
+    db.execSync('PRAGMA user_version = 1');
+  });
+};
+
+/**
+ * Initializes the database with optimal settings and runs any pending migrations
+ * Handles both fresh installations and existing databases
+ */
+export const initializeDatabase = () => {
   db.execSync('PRAGMA busy_timeout = 5000');
   db.execSync('PRAGMA cache_size = 10000');
   db.execSync('PRAGMA foreign_keys = ON');
@@ -39,34 +69,15 @@ export const createTables = () => {
     db.getFirstSync<{ user_version: number }>('PRAGMA user_version')
       ?.user_version ?? 0;
 
-  if (!isOnBoard) {
-    db.execSync('PRAGMA journal_mode = WAL');
-    db.execSync('PRAGMA synchronous = NORMAL');
-    db.execSync('PRAGMA temp_store = MEMORY');
-    db.withTransactionSync(() => {
-      db.runSync(createNovelTableQuery);
-      db.runSync(createNovelIndexQuery);
-      db.runSync(createCategoriesTableQuery);
-      db.runSync(createCategoryDefaultQuery);
-      db.runSync(createNovelCategoryTableQuery);
-      db.runSync(createChapterTableQuery);
-      db.runSync(createCategoryTriggerQuery);
-      db.runSync(createChapterIndexQuery);
-      db.runSync(createRepositoryTableQuery);
-      db.runSync(createNovelTriggerQueryInsert);
-      db.runSync(createNovelTriggerQueryUpdate);
-      db.runSync(createNovelTriggerQueryDelete);
-      db.execSync('PRAGMA user_version = 1');
-    });
-  } else {
-    db.runSync(createCategoryDefaultQuery);
-    if (userVersion < 1) {
-      updateToDBVersion1();
-    }
+  if (userVersion === 0) {
+    createInitialSchema();
   }
+
+  const migrationRunner = new MigrationRunner(migrations);
+  migrationRunner.runMigrations(db);
 };
 
-export const recreateDBIndex = () => {
+export const recreateDatabaseIndexes = () => {
   try {
     db.execSync('PRAGMA analysis_limit=4000');
     db.execSync('PRAGMA optimize');
@@ -77,6 +88,7 @@ export const recreateDBIndex = () => {
     db.execSync('PRAGMA cache_size = 10000');
     db.execSync('PRAGMA temp_store = MEMORY');
     db.execSync('PRAGMA busy_timeout = 5000');
+
     db.withTransactionSync(() => {
       db.runSync(dropNovelIndexQuery);
       db.runSync(dropChapterIndexQuery);
@@ -84,63 +96,6 @@ export const recreateDBIndex = () => {
       db.runSync(createChapterIndexQuery);
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    showToast(message);
+    showToast(getErrorMessage(error));
   }
 };
-
-function updateToDBVersion1() {
-  db.execSync('PRAGMA journal_mode = WAL');
-  db.execSync('PRAGMA synchronous = NORMAL');
-  db.execSync('PRAGMA temp_store = MEMORY');
-
-  db.withTransactionSync(() => {
-    db.runSync(
-      'ALTER TABLE Novel ADD COLUMN chaptersDownloaded INTEGER DEFAULT 0',
-    );
-
-    db.runSync('ALTER TABLE Novel ADD COLUMN chaptersUnread INTEGER DEFAULT 0');
-    db.runSync('ALTER TABLE Novel ADD COLUMN totalChapters INTEGER DEFAULT 0');
-    db.runSync('ALTER TABLE Novel ADD COLUMN lastReadAt TEXT');
-    db.runSync('ALTER TABLE Novel ADD COLUMN lastUpdatedAt TEXT');
-    db.runSync(`UPDATE Novel
-      SET chaptersDownloaded = (
-          SELECT COUNT(*)
-          FROM Chapter
-          WHERE Chapter.novelId = Novel.id AND Chapter.isDownloaded = 1
-      );
-      `);
-    db.runSync(`UPDATE Novel
-SET chaptersUnread = (
-    SELECT COUNT(*)
-    FROM Chapter
-    WHERE Chapter.novelId = Novel.id AND Chapter.unread = 1
-);
-`);
-    db.runSync(`UPDATE Novel
-SET totalChapters = (
-    SELECT COUNT(*)
-    FROM Chapter
-    WHERE Chapter.novelId = Novel.id
-);
-`);
-    db.runSync(`UPDATE Novel
-      SET lastReadAt = (
-          SELECT MAX(readTime)
-          FROM Chapter
-          WHERE Chapter.novelId = Novel.id
-      );
-      `);
-    db.runSync(`UPDATE Novel
-      SET lastUpdatedAt = (
-          SELECT MAX(updatedTime)
-          FROM Chapter
-          WHERE Chapter.novelId = Novel.id
-      );
-      `);
-    db.runSync(createNovelTriggerQueryInsert);
-    db.runSync(createNovelTriggerQueryUpdate);
-    db.runSync(createNovelTriggerQueryDelete);
-    db.execSync('PRAGMA user_version = 1');
-  });
-}

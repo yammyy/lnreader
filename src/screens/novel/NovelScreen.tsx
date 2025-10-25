@@ -29,7 +29,7 @@ import NovelScreenList from './components/NovelScreenList';
 import { ThemeColors } from '@theme/types';
 import { SafeAreaView } from '@components';
 import { useNovelContext } from './NovelContext';
-import { FlashList } from '@shopify/flash-list';
+import { LegendListRef } from '@legendapp/list';
 import MoveChaptersModal from './components/MoveChaptersModal';
 
 const Novel = ({ route, navigation }: NovelScreenProps) => {
@@ -61,7 +61,7 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
   const [editInfoModal, showEditInfoModal] = useState(false);
   const [moveChaptersModal, setMoveChaptersModal] = useState(false);
 
-  const chapterListRef = useRef<FlashList<ChapterInfo> | null>(null);
+  const chapterListRef = useRef<LegendListRef | null>(null);
 
   const deleteDownloadsSnackbar = useBoolean();
 
@@ -270,7 +270,6 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
             {selected.length === 0 ? (
               <NovelAppbar
                 novel={novel}
-                chapters={chapters}
                 deleteChapters={deleteChs}
                 downloadChapters={downloadChs}
                 showEditInfoModal={showEditInfoModal}

@@ -11,8 +11,8 @@ import Animated, {
   interpolateColor,
   useAnimatedStyle,
 } from 'react-native-reanimated';
-import EpubIconButton from './EpubIconButton';
-import { ChapterInfo, NovelInfo } from '@database/types';
+import ExportNovelAsEpubButton from './ExportNovelAsEpubButton';
+import { NovelInfo } from '@database/types';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { MaterialDesignIconName } from '@type/icon';
 
@@ -57,7 +57,6 @@ const Menu = React.memo(
 
 const NovelAppbar = ({
   novel,
-  chapters,
   theme,
   isLocal,
   downloadChapters,
@@ -71,7 +70,6 @@ const NovelAppbar = ({
   headerOpacity,
 }: {
   novel: NovelInfo | undefined;
-  chapters: ChapterInfo[];
   theme: ThemeColors;
   isLocal: boolean | undefined;
   downloadChapters: (amount: number | 'all' | 'unread') => void;
@@ -165,13 +163,7 @@ const NovelAppbar = ({
         <Appbar.BackAction onPress={goBack} />
 
         <View style={styles.row}>
-          <EpubIconButton
-            theme={theme}
-            novel={novel}
-            chapters={chapters}
-            anchor={AppbarAction}
-          />
-
+          <ExportNovelAsEpubButton novel={novel} iconComponent={AppbarAction} />
           <AppbarAction icon="share-variant" onPress={shareNovel} />
           <AppbarAction
             icon="text-box-search-outline"

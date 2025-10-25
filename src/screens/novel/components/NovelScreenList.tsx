@@ -13,6 +13,7 @@ import {
 import { getString } from '@strings/translations';
 import { showToast } from '@utils/showToast';
 import {
+  Dimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
   RefreshControl,
@@ -27,10 +28,10 @@ import { AnimatedFAB } from 'react-native-paper';
 import { ChapterListSkeleton } from '@components/Skeleton/Skeleton';
 import { BottomSheetModalMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import { useNovelContext } from '../NovelContext';
-import { FlashList } from '@shopify/flash-list';
+import { LegendList, LegendListRef } from '@legendapp/list';
 import FileManager from '@specs/NativeFile';
 import { downloadFile } from '@plugins/helpers/fetch';
-import { StorageAccessFramework } from 'expo-file-system';
+import { StorageAccessFramework } from 'expo-file-system/legacy';
 import {
   deleteChapterFromDb,
   insertChapterAndAdjustPositions,
@@ -42,7 +43,7 @@ import ServiceManager from '@services/ServiceManager';
 
 type NovelScreenListProps = {
   headerOpacity: SharedValue<number>;
-  listRef: React.RefObject<FlashList<ChapterInfo> | null>;
+  listRef: React.RefObject<LegendListRef | null>;
   navigation: any;
   openDrawer: () => void;
   selected: ChapterInfo[];
@@ -118,6 +119,7 @@ const NovelScreenList = ({
   const [refreshFlag, setRefreshFlag] = useState(0);
 
   const [isFabExtended, setIsFabExtended] = useState(true);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
 
   const novelBottomSheetRef = useRef<BottomSheetModalMethods>(null);
   const trackerSheetRef = useRef<BottomSheetModalMethods>(null);
@@ -132,6 +134,9 @@ const NovelScreenList = ({
     if (useFabForContinueReading && lastRead) {
       setIsFabExtended(currentScrollPosition <= 0);
     }
+
+    const screenHeight = Dimensions.get('window').height;
+    setShowScrollToTop(currentScrollPosition > screenHeight / 2);
   };
 
   const onRefresh = async () => {
@@ -217,7 +222,7 @@ const handleImportChapter = async (chapter: ChapterInfo, index: number, pluginId
       return;
     }
 
-    // ✅ Correct structure — the selected file is in file.assets[0]
+    // ? Correct structure � the selected file is in file.assets[0]
     const selectedFile = file.assets?.[0];
     if (!selectedFile) {
       console.error('No file selected or picker returned unexpected result:', file);
@@ -239,7 +244,7 @@ const handleImportChapter = async (chapter: ChapterInfo, index: number, pluginId
       },
     });
 
-    // When done → mark as downloaded
+    // When done ? mark as downloaded
     updateChapter?.(index, { isDownloaded: true });
 
   } catch (e) {
@@ -332,6 +337,10 @@ const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: s
     });
   };
 
+  const scrollToTop = () => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  };
+
   const setCustomNovelCover = async () => {
     if (!novel || novel.id === 'NO_ID') {
       return;
@@ -401,10 +410,11 @@ const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: s
 
   return (
     <>
-      <FlashList
+      <LegendList
         ref={listRef}
         estimatedItemSize={64}
         data={chapters}
+        recycleItems
         extraData={[
           chapters.length,
           selected.length,
@@ -488,11 +498,21 @@ const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: s
             filter={filter}
             showChapterTitles={showChapterTitles}
           />
-          <TrackSheet
-            bottomSheetRef={trackerSheetRef}
-            novel={novel}
-            theme={theme}
-          />
+          <TrackSheet bottomSheetRef={trackerSheetRef} novel={novel} />
+          {showScrollToTop && (
+            <AnimatedFAB
+              style={[
+                styles.scrollToTopFab,
+                { backgroundColor: theme.surface2, marginBottom: bottomInset },
+              ]}
+              color={theme.primary}
+              icon="arrow-up"
+              label=""
+              extended={false}
+              onPress={scrollToTop}
+              visible={showScrollToTop}
+            />
+          )}
           {useFabForContinueReading && (lastRead || chapters[0]) ? (
             <AnimatedFAB
               style={[
@@ -540,6 +560,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  scrollToTopFab: {
+    bottom: 16,
+    position: 'absolute',
   },
 });
 
