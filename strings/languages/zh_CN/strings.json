@@ -338,7 +338,8 @@
       },
       "order": {
         "byChapterName": "按章节名",
-        "bySource": "按源"
+        "bySource": "按源",
+        "byChapterNumber": "By chapter number"
       }
     },
     "chapterChapnum": "第 %{num} 章",

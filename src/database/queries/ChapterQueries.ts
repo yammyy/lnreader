@@ -38,7 +38,7 @@ export const insertChapters = async (
         chapters.map((chapter, index) =>
           statement.executeSync(
             chapter.path,
-            chapter.name ?? 'Chapter ' + (index + 1),
+            chapter.name ?? `Chapter ${String(index + 1).padStart(5, '0')}`,
             chapter.releaseTime || '',
             chapter.chapterNumber || null,
             chapter.page || '1',
@@ -74,7 +74,7 @@ export const insertChaptersAndReturnIndex = async (
       chapters.forEach((chapter, index) => {
         statement.executeSync(
           chapter.path,
-          chapter.name ?? `Chapter ${index + 1}`,
+          chapter.name ?? 'Chapter ' + String(index + 1).padStart(5, '0'),
           chapter.releaseTime ?? '',
           chapter.chapterNumber ?? null,
           chapter.page ?? '1',
@@ -144,7 +144,7 @@ export const insertChapterAndAdjustPositions = async (
 
 export const updateChapterPath = async (
   novelId: number,
-  chapter: { id?: number; path?: string; name?: string },
+  chapter: { id?: number; path?: string; name?: string; chapterNumber?: string },
 ) => {
   if (!chapter.id) throw new Error('Chapter ID is required to update path and name');
 
@@ -152,7 +152,8 @@ export const updateChapterPath = async (
     UPDATE Chapter
     SET
       path = COALESCE(?, path),
-      name = COALESCE(?, name)
+      name = COALESCE(?, name),
+      chapterNumber = COALESCE(?, chapterNumber)
     WHERE id = ? AND novelId = ?;
   `);
 
@@ -160,6 +161,7 @@ export const updateChapterPath = async (
     updateStatement.executeSync(
       chapter.path ?? null,
       chapter.name ?? null,
+      chapter.chapterNumber ?? null,
       chapter.id,
       novelId,
     );

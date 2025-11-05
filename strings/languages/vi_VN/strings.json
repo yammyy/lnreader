@@ -338,7 +338,8 @@
       },
       "order": {
         "byChapterName": "Theo tên chương",
-        "bySource": "Theo nguồn"
+        "bySource": "Theo nguồn",
+        "byChapterNumber": "By chapter number"
       }
     },
     "chapterChapnum": "Chương %{num}",

@@ -30,7 +30,8 @@ interface ChapterItemProps {
   setChapterDownloaded?: (value: boolean) => void;
   handleDeleteChapter?: (chapter: ChapterInfo) => void;
   handleImportChapter?: (chapter: ChapterInfo) => void;
-  handleAddChapter?: (chapter: ChapterInfo & { path?: string; name?: string }) => void;
+  handleAddChapter?: (chapter: ChapterInfo & { path?: string; name?: string; chapterNumber?: string }) => void;
+  handleEditChapter?: (chapter: ChapterInfo & { path?: string; name?: string; chapterNumber?: string }) => void;
   left?: ReactNode;
   isLocal: boolean;
   isUpdateCard?: boolean;
@@ -55,6 +56,7 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
   handleDeleteChapter,
   handleImportChapter,
   handleAddChapter,
+  handleEditChapter,
   isLocal,
   left,
   isUpdateCard,
@@ -62,7 +64,7 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
 }) => {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editChapter, setEditChapter] = useState<{ path: string; name: string } | null>(null);
+  const [editChapter, setEditChapter] = useState<{ path: string; name: string; chapterNumber: string } | null>(null);
 
   const { id, name, unread, releaseTime, bookmark, chapterNumber, progress } =
     chapter;
@@ -101,7 +103,7 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
           color={theme.secondary}
           onPress={() => {
             swipeableRef.current?.close();
-            setEditChapter({ path: chapter.path ?? '', name: chapter.name ?? '' });
+            setEditChapter({ path: chapter.path ?? '', name: chapter.name ?? '' , chapterNumber: chapter.chapterNumber?.toString() ?? '' });
             setEditModalVisible(true);
           }}
           theme={theme}
@@ -277,11 +279,12 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
       <AddChapterModal
         visible={addModalVisible}
         onDismiss={() => setAddModalVisible(false)}
-        onSave={(path, name) => {
+        onSave={(path, name, chapterNumber) => {
           handleAddChapter?.({
             ...chapter,
             path,
             name,
+            chapterNumber,
           });
         }}
         title="Add Chapter"
@@ -289,15 +292,17 @@ const ChapterItem: React.FC<ChapterItemProps> = ({
       <AddChapterModal
         visible={editModalVisible}
         onDismiss={() => setEditModalVisible(false)}
-        onSave={(path, name) => {
-          handleAddChapter?.({
+        onSave={(path, name, chapterNumber) => {
+          handleEditChapter?.({
             ...chapter,
             path,
             name,
+            chapterNumber,
           });
         }}
         initialPath={editChapter?.path}
         initialName={editChapter?.name}
+        initialChapterNumber={editChapter?.chapterNumber}
         title="Edit Chapter"
       />
     </>

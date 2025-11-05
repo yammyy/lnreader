@@ -338,7 +338,8 @@
       },
       "order": {
         "byChapterName": "By chapter name",
-        "bySource": "By source"
+        "bySource": "By source",
+        "byChapterNumber": "By chapter number"
       }
     },
     "chapterChapnum": "Chapter %{num}",

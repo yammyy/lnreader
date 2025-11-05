@@ -134,6 +134,7 @@ const ExportNovelAsEpubButton: React.FC<ExportNovelAsEpubButtonProps> = ({
         return;
       }
 
+      console.log(destinationUri);
       epub = new EpubBuilder(
         {
           title: novel.name,
@@ -150,23 +151,52 @@ const ExportNovelAsEpubButton: React.FC<ExportNovelAsEpubButtonProps> = ({
       );
 
       await epub.prepare();
-
       let addedChapters = 0;
       for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];
         const chapterFilePath = `${NOVEL_STORAGE}/${novel.pluginId}/${novel.id}/${chapter.id}/index.html`;
+        console.log(`Chapter path: ${chapterFilePath}`);
 
         if (NativeFile.exists(chapterFilePath)) {
-          const chapterContent = NativeFile.readFile(chapterFilePath);
+          console.log("Get chapter content");
+          let chapterContent = NativeFile.readFile(chapterFilePath);
+          console.log("Successfully read file");
+          // 🧹 Очистка битых <img>
+          chapterContent = chapterContent.replace(
+            /<img[^>]+src="([^"]+)"[^>]*>/g,
+            (match, src) => {
+              // Извлекаем только имя файла из пути
+              const fileName = src.split('/').pop()?.trim();
+              if (!fileName) {
+                console.log(`⚠️ Empty or invalid image src: ${src}`);
+                return '';
+              }
 
-          await epub.addChapter({
-            title:
-              chapter.name?.trim() || `Chapter ${chapter.chapterNumber || i}`,
-            fileName: `Chapter${i}`,
-            htmlBody: `<chapter data-novel-id='${novel.pluginId}' data-chapter-id='${chapter.id}'>${chapterContent}</chapter>`,
-          });
+              const imgFullPath = `${NOVEL_STORAGE}/${novel.pluginId}/${novel.id}/${chapter.id}/${fileName}`;
+              if (NativeFile.exists(imgFullPath)) {
+                console.log(`✅ Image kept: ${imgFullPath}`);
+                return src;
+              } else {
+                console.log(`⚠️ Missing image removed: ${fileName}`);
+                return '';
+              }
+            },
+          );
 
-          addedChapters++;
+          console.log("Add chapter");
+          try {
+            await epub.addChapter({
+              title: chapter.name?.trim() || `Chapter ${chapter.chapterNumber || i}`,
+              fileName: `Chapter${i}`,
+              htmlBody: `<chapter data-novel-id='${novel.pluginId}' data-chapter-id='${chapter.id}'>${chapterContent}</chapter>`,
+            });
+            console.log("Successfully added");
+            addedChapters++;
+          } catch (error) {
+            console.log(`❌ Failed to add chapter ${chapter.id}: ${error.message}`);
+          }
+        } else {
+          console.log(`⚠️ Chapter file not found: ${chapterFilePath}`);
         }
       }
 
@@ -175,14 +205,17 @@ const ExportNovelAsEpubButton: React.FC<ExportNovelAsEpubButtonProps> = ({
         await epub.discardChanges();
         return;
       }
-
+      console.log("Save epub");
       await epub.save();
+      console.log("Successfully");
       showToast(
         getString('novelScreen.epub.exportSuccess', {
           chapters: addedChapters.toString(),
         }),
       );
     } catch (error: any) {
+      const message = error?.stack || error?.message || JSON.stringify(error);
+      console.log('EPUB export error:\n' + message);
       showToast(
         getString('novelScreen.epub.exportFailed', {
           error: error.message || error,

@@ -4,9 +4,10 @@ import { Modal, Portal, Text, TextInput, Button } from 'react-native-paper';
 interface Props {
   visible: boolean;
   onDismiss: () => void;
-  onSave: (path: string, name: string) => void;
+  onSave: (path: string, name: string, chapterNumber: string) => void;
   initialPath?: string;
   initialName?: string;
+  initialChapterNumber?: string;
   title?: string;
 }
 
@@ -16,23 +17,27 @@ const AddChapterModal: React.FC<Props> = ({
   onSave,
   initialPath = '',
   initialName = '',
+  initialChapterNumber = '',
   title = 'Add Chapter',
 }) => {
   const [path, setPath] = useState(initialPath);
   const [name, setName] = useState(initialName);
+  const [chapterNumber, setChapterNumber] = useState(initialChapterNumber);
 
   useEffect(() => {
     if (visible) {
       setPath(initialPath);
       setName(initialName);
+      setChapterNumber(initialChapterNumber);
     }
-  }, [visible, initialPath, initialName]);
+  }, [visible, initialPath, initialName, initialChapterNumber]);
 
   const handleSave = () => {
     if (path.trim() && name.trim()) {
-      onSave(path.trim(), name.trim());
+      onSave(path.trim(), name.trim(), chapterNumber.trim());
       setPath('');
       setName('');
+      setChapterNumber('');
       onDismiss();
     }
   };
@@ -40,6 +45,7 @@ const AddChapterModal: React.FC<Props> = ({
   const handleDismiss = () => {
     setPath('');
     setName('');
+    setChapterNumber('');
     onDismiss();
   };
 
@@ -69,6 +75,14 @@ const AddChapterModal: React.FC<Props> = ({
           label="Chapter Name"
           value={name}
           onChangeText={setName}
+          mode="outlined"
+          style={{ marginBottom: 20 }}
+        />
+
+        <TextInput
+          label="Chapter Number"
+          value={chapterNumber}
+          onChangeText={setChapterNumber}
           mode="outlined"
           style={{ marginBottom: 20 }}
         />

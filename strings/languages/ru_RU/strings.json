@@ -338,7 +338,8 @@
       },
       "order": {
         "byChapterName": "По названию главы",
-        "bySource": "Источник"
+        "bySource": "Источник",
+        "byChapterNumber": "By chapter number"
       }
     },
     "chapterChapnum": "Глава: %{num}",

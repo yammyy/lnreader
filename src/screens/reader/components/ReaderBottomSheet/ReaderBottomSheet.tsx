@@ -153,6 +153,7 @@ const ReaderBottomSheetV2: React.FC<ReaderBottomSheetV2Props> = ({
     (props: any) => (
       <TabBar
         {...props}
+        renderLabel={renderLabel}
         indicatorStyle={{ backgroundColor: theme.primary }}
         style={[styles.tabBar, { backgroundColor: tabHeaderColor }]}
         inactiveColor={theme.onSurfaceVariant}
@@ -171,6 +172,7 @@ const ReaderBottomSheetV2: React.FC<ReaderBottomSheetV2Props> = ({
     <BottomSheet
       bottomSheetRef={bottomSheetRef}
       snapPoints={[360, 600]}
+      enableDynamicSizing={false}
       backgroundStyle={{ backgroundColor }}
       bottomInset={bottom}
       containerStyle={[
@@ -178,19 +180,22 @@ const ReaderBottomSheetV2: React.FC<ReaderBottomSheetV2Props> = ({
         { marginLeft: left, marginRight: right },
       ]}
     >
-      <BottomSheetView style={styles.flex}>
-        <TabView
-          commonOptions={{
-            label: renderLabel,
-          }}
-          navigationState={{ index, routes }}
-          renderTabBar={renderTabBar}
-          renderScene={renderScene}
-          onIndexChange={setIndex}
-          initialLayout={{ width: layout.width }}
-          style={styles.tabView}
-        />
-      </BottomSheetView>
+     <BottomSheetView
+       style={[
+         styles.contentContainer,
+         { backgroundColor, marginLeft: left, marginRight: right },
+       ]}
+     >
+       <View style={{ height: 600 }}>
+         <TabView
+           navigationState={{ index, routes }}
+           renderTabBar={renderTabBar}
+           renderScene={renderScene}
+           onIndexChange={setIndex}
+           initialLayout={{ width: layout.width }}
+         />
+       </View>
+     </BottomSheetView>
     </BottomSheet>
   );
 };
@@ -213,4 +218,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 8,
   },
   flex: { flex: 1 },
+  contentContainer: {
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    flex: 1,
+  },
 });

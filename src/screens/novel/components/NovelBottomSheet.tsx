@@ -2,38 +2,38 @@ import React, { useCallback, useState } from 'react';
 import { StyleSheet, View, Text, useWindowDimensions } from 'react-native';
 import color from 'color';
 
-import { TabView, SceneMap, TabBar, TabViewProps } from 'react-native-tab-view';
+import { TabView, TabBar, TabViewProps, SceneMap } from 'react-native-tab-view';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
 import BottomSheet from '@components/BottomSheet/BottomSheet';
-import { getString } from '@strings/translations';
-
-import { Checkbox, SortItem } from '@components/Checkbox/Checkbox';
-
 import { overlay } from 'react-native-paper';
 import { BottomSheetModalMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import { ThemeColors } from '@theme/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Checkbox, SortItem } from '@components/Checkbox/Checkbox';
+import { getString } from '@strings/translations';
 
 interface ChaptersSettingsSheetProps {
   bottomSheetRef: React.RefObject<BottomSheetModalMethods | null>;
-  sortAndFilterChapters: (sort?: string, filter?: string) => Promise<void>;
-  sort: string;
-  filter: string;
   theme: ThemeColors;
-  showChapterTitles: boolean;
-  setShowChapterTitles: (v: boolean) => void;
+  sortAndFilterChapters?: (sort?: string, filter?: string) => Promise<void>;
+  sort?: string;
+  filter?: string;
+  showChapterTitles?: boolean;
+  setShowChapterTitles?: (v: boolean) => void;
 }
 
 const ChaptersSettingsSheet = ({
   bottomSheetRef,
-  sortAndFilterChapters,
-  sort,
-  filter,
   theme,
-  showChapterTitles,
-  setShowChapterTitles,
+  sortAndFilterChapters = async () => {},
+  sort = '',
+  filter = '',
+  showChapterTitles = true,
+  setShowChapterTitles = () => {},
 }: ChaptersSettingsSheetProps) => {
   const { left, right } = useSafeAreaInsets();
+  const layout = useWindowDimensions();
+
   const sortChapters = useCallback(
     (val: string) => sortAndFilterChapters(val, filter),
     [filter, sortAndFilterChapters],
@@ -44,6 +44,7 @@ const ChaptersSettingsSheet = ({
     [sort, sortAndFilterChapters],
   );
 
+  // --- Real scene components ---
   const FirstRoute = useCallback(
     () => (
       <View style={styles.flex}>
@@ -59,9 +60,7 @@ const ChaptersSettingsSheet = ({
           }
           onPress={() => {
             if (filter.match('AND isDownloaded=1')) {
-              filterChapters(
-                filter.replace(' AND isDownloaded=1', ' AND isDownloaded=0'),
-              );
+              filterChapters(filter.replace(' AND isDownloaded=1', ' AND isDownloaded=0'));
             } else if (filter.match('AND isDownloaded=0')) {
               filterChapters(filter.replace(' AND isDownloaded=0', ''));
             } else {
@@ -81,9 +80,7 @@ const ChaptersSettingsSheet = ({
           }
           onPress={() => {
             if (filter.match(' AND `unread`=1')) {
-              filterChapters(
-                filter.replace(' AND `unread`=1', ' AND `unread`=0'),
-              );
+              filterChapters(filter.replace(' AND `unread`=1', ' AND `unread`=0'));
             } else if (filter.match(' AND `unread`=0')) {
               filterChapters(filter.replace(' AND `unread`=0', ''));
             } else {
@@ -97,9 +94,7 @@ const ChaptersSettingsSheet = ({
           status={!!filter.match('AND bookmark=1')}
           onPress={() => {
             filterChapters(
-              filter.match('AND bookmark=1')
-                ? filter.replace(' AND bookmark=1', '')
-                : filter + ' AND bookmark=1',
+              filter.match('AND bookmark=1') ? filter.replace(' AND bookmark=1', '') : filter + ' AND bookmark=1'
             );
           }}
         />
@@ -113,33 +108,25 @@ const ChaptersSettingsSheet = ({
       <View style={styles.flex}>
         <SortItem
           label={getString('novelScreen.bottomSheet.order.bySource')}
-          status={
-            sort === 'ORDER BY position ASC'
-              ? 'asc'
-              : sort === 'ORDER BY position DESC'
-              ? 'desc'
-              : undefined
-          }
+          status={sort === 'ORDER BY position ASC' ? 'asc' : sort === 'ORDER BY position DESC' ? 'desc' : undefined}
           onPress={() =>
-            sort === 'ORDER BY position ASC'
-              ? sortChapters('ORDER BY position DESC')
-              : sortChapters('ORDER BY position ASC')
+            sort === 'ORDER BY position ASC' ? sortChapters('ORDER BY position DESC') : sortChapters('ORDER BY position ASC')
           }
           theme={theme}
         />
         <SortItem
           label={getString('novelScreen.bottomSheet.order.byChapterName')}
-          status={
-            sort === 'ORDER BY name ASC'
-              ? 'asc'
-              : sort === 'ORDER BY name DESC'
-              ? 'desc'
-              : undefined
-          }
+          status={sort === 'ORDER BY name ASC' ? 'asc' : sort === 'ORDER BY name DESC' ? 'desc' : undefined}
           onPress={() =>
-            sort === 'ORDER BY name ASC'
-              ? sortChapters('ORDER BY name DESC')
-              : sortChapters('ORDER BY name ASC')
+            sort === 'ORDER BY name ASC' ? sortChapters('ORDER BY name DESC') : sortChapters('ORDER BY name ASC')
+          }
+          theme={theme}
+        />
+        <SortItem
+          label={getString('novelScreen.bottomSheet.order.byChapterNumber')}
+          status={sort === 'ORDER BY chapterNumber ASC' ? 'asc' : sort === 'ORDER BY chapterNumber DESC' ? 'desc' : undefined}
+          onPress={() =>
+            sort === 'ORDER BY chapterNumber ASC' ? sortChapters('ORDER BY chapterNumber DESC') : sortChapters('ORDER BY chapterNumber ASC')
           }
           theme={theme}
         />
@@ -174,8 +161,6 @@ const ChaptersSettingsSheet = ({
     third: ThirdRoute,
   });
 
-  const layout = useWindowDimensions();
-
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: 'first', title: getString('common.filter') },
@@ -183,56 +168,35 @@ const ChaptersSettingsSheet = ({
     { key: 'third', title: getString('common.display') },
   ]);
 
+  const renderLabel = useCallback(
+    ({ route, color: localColor }: { route: any; color: string }) => <Text style={{ color: localColor }}>{route.title}</Text>,
+    [],
+  );
+
   const renderTabBar: TabViewProps<any>['renderTabBar'] = props => (
     <TabBar
       {...props}
+      renderLabel={renderLabel}
       indicatorStyle={{ backgroundColor: theme.primary }}
-      style={[
-        {
-          backgroundColor: overlay(2, theme.surface),
-          borderBottomColor: theme.outline,
-        },
-        styles.tabBar,
-      ]}
+      style={[{ backgroundColor: overlay(2, theme.surface), borderBottomColor: theme.outline }, styles.tabBar]}
       inactiveColor={theme.onSurfaceVariant}
       activeColor={theme.primary}
       pressColor={color(theme.primary).alpha(0.12).string()}
     />
   );
 
-  const renderLabel = useCallback(
-    ({ route, color: localColor }: { route: any; color: string }) => {
-      return <Text style={{ color: localColor }}>{route.title}</Text>;
-    },
-    [],
-  );
   return (
-    <BottomSheet
-      snapPoints={[240]}
-      bottomSheetRef={bottomSheetRef}
-      backgroundStyle={styles.transparent}
-    >
-      <BottomSheetView
-        style={[
-          styles.contentContainer,
-          {
-            backgroundColor: overlay(2, theme.surface),
-            marginLeft: left,
-            marginRight: right,
-          },
-        ]}
-      >
-        <TabView
-          commonOptions={{
-            label: renderLabel,
-          }}
-          navigationState={{ index, routes }}
-          renderTabBar={renderTabBar}
-          renderScene={renderScene}
-          onIndexChange={setIndex}
-          initialLayout={{ width: layout.width }}
-          style={styles.radius}
-        />
+    <BottomSheet snapPoints={[600]} bottomSheetRef={bottomSheetRef} backgroundStyle={{ backgroundColor: theme.surface }}>
+      <BottomSheetView style={[styles.contentContainer, { backgroundColor: overlay(2, theme.surface), marginLeft: left, marginRight: right }]}>
+        <View style={{ height: 500 }}>
+          <TabView
+            navigationState={{ index, routes }}
+            renderTabBar={renderTabBar}
+            renderScene={renderScene}
+            onIndexChange={setIndex}
+            initialLayout={{ width: layout.width }}
+          />
+        </View>
       </BottomSheetView>
     </BottomSheet>
   );
@@ -246,13 +210,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 8,
     flex: 1,
   },
-  radius: {
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-  },
-  transparent: {
-    backgroundColor: 'transparent',
-  },
-  flex: { flex: 1 },
   tabBar: { borderBottomWidth: 1, elevation: 0 },
+  flex: { flex: 1 },
 });

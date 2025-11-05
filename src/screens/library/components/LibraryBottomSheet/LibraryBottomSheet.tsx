@@ -235,13 +235,15 @@ const LibraryBottomSheet: React.FC<LibraryBottomSheetProps> = ({
   }, [renderCommonOptions]);
 
   return (
-    <BottomSheet bottomSheetRef={bottomSheetRef} snapPoints={[520]}>
+    <BottomSheet bottomSheetRef={bottomSheetRef} snapPoints={[520]}
+      enableDynamicSizing={false}>
       <BottomSheetView
         style={[
           styles.bottomSheetCtn,
           { backgroundColor: overlay(2, theme.surface) },
         ]}
       >
+       <View style={{ height: 600 }}>
         <TabView
           commonOptions={commonOptions}
           navigationState={{ index, routes }}
@@ -251,6 +253,7 @@ const LibraryBottomSheet: React.FC<LibraryBottomSheetProps> = ({
           initialLayout={{ width: layout.width }}
           style={styles.tabView}
         />
+       </View>
       </BottomSheetView>
     </BottomSheet>
   );

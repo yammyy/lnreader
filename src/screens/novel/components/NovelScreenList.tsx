@@ -222,7 +222,7 @@ const handleImportChapter = async (chapter: ChapterInfo, index: number, pluginId
       return;
     }
 
-    // ? Correct structure — the selected file is in file.assets[0]
+    // ? Correct structure ï¿½ the selected file is in file.assets[0]
     const selectedFile = file.assets?.[0];
     if (!selectedFile) {
       console.error('No file selected or picker returned unexpected result:', file);
@@ -254,7 +254,8 @@ const handleImportChapter = async (chapter: ChapterInfo, index: number, pluginId
 };
 
 
-const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: string }) => {
+const handleAddChapter = async (
+    chapter: ChapterInfo & { path?: string; name?: string; chapterNumber?: string }) => {
   try {
     await insertChapterAndAdjustPositions(novel.id, {
       path: chapter.path ?? '',
@@ -272,13 +273,14 @@ const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: s
   }
 };
   const handleEditChapter = async (
-    chapter: ChapterInfo & { path?: string; name?: string },
+    chapter: ChapterInfo & { path?: string; name?: string; chapterNumber?: string },
   ) => {
     try {
       await updateChapterPath(novel.id, {
         id: chapter.id, // required to know which row to update
         path: chapter.path,
         name: chapter.name,
+        chapterNumber: Number(chapter.chapterNumber),
       });
 
       await getNovel(); // refresh chapter list
@@ -450,6 +452,7 @@ const handleAddChapter = async (chapter: ChapterInfo & { path?: string; name?: s
               handleDeleteChapter={handleDeleteChapter}
               handleImportChapter={handleImportChapter}
               handleAddChapter={handleAddChapter}
+              handleEditChapter={handleEditChapter}
               novelName={novel.name}
               setChapterDownloaded={(value: boolean) =>
                 updateChapter?.(index, { isDownloaded: value })

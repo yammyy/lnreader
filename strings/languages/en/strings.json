@@ -359,7 +359,8 @@
       },
       "order": {
         "byChapterName": "By chapter name",
-        "bySource": "By source"
+        "bySource": "By source",
+        "byChapterNumber": "By chapter number"
       }
     },
     "chapterChapnum": "Chapter %{num}",
@@ -548,6 +549,7 @@
     "SELF_HOST_BACKUP": "Self host backup",
     "SELF_HOST_RESTORE": "Self host restore",
     "MIGRATE_NOVEL": "Migrated novel",
-    "DOWNLOAD_CHAPTER": "Downloaded chapter"
+    "DOWNLOAD_CHAPTER": "Downloaded chapter",
+    "IMPORT_CHAPTER": "Imported chapter"
   }
 }

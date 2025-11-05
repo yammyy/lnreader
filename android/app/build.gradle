@@ -121,6 +121,13 @@ android {
             path "src/main/jni/CMakeLists.txt"
         }
     }
+
+    // 🧹 Disable lint checks for release builds to prevent "Metaspace" OOM
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
 }
 
 dependencies {
