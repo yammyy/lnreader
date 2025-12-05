@@ -41,7 +41,7 @@ const getChaptersDownloadedCountQuery = `
 `;
 
 const getNovelGenresQuery = `
-  SELECT LOWER(n.genres) AS genres
+  SELECT distinct LOWER(n.genres) AS genres
   FROM Novel n
   WHERE n.inLibrary = 1
     AND EXISTS (
@@ -90,9 +90,14 @@ export const getNovelGenresFromDb = async (): Promise<LibraryStats> => {
   // Helper: capitalize each word in a string
   const capitalize = (s: string) =>
     s
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+      .trim() // Trim the whole string first
+      .split(' ').
+      map(word => {
+        const w = word.trim();   // Safety: trim each word
+        if (!w) return "";        // Skip empty pieces
+        return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+      })
+      .join(" ");
   await getAllAsync([getNovelGenresQuery]).then(res => {
     (res as any).forEach((item: { genres: string }) => {
       const novelGenres = item.genres?.split(/\s*,\s*/);
