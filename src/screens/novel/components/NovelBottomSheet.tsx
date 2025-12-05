@@ -210,6 +210,19 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 8,
     flex: 1,
   },
-  tabBar: { borderBottomWidth: 1, elevation: 0 },
-  flex: { flex: 1 },
+  tabView: {
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    height: 240,
+  },
+  transparent: {
+    backgroundColor: 'transparent',
+  },
+  flex: {
+    flex: 1,
+  },
+  tabBar: {
+    borderBottomWidth: 1,
+    elevation: 0,
+  },
 });

@@ -36,6 +36,10 @@ export interface StringMap {
   'appearance': 'string';
   'appearanceScreen.accentColor': 'string';
   'appearanceScreen.alwaysShowNavLabels': 'string';
+  'appearanceScreen.appLanguage': 'string';
+  'appearanceScreen.languagePickerModal.title': 'string';
+  'appearanceScreen.languagePickerModal.restartNote': 'string';
+  'appearanceScreen.appLanguageDefault': 'string';
   'appearanceScreen.appTheme': 'string';
   'appearanceScreen.darkTheme': 'string';
   'appearanceScreen.hideBackdrop': 'string';
@@ -64,6 +68,7 @@ export interface StringMap {
   'backupScreen.backupName': 'string';
   'backupScreen.backupCreated': 'string';
   'backupScreen.backupRestored': 'string';
+  'backupScreen.savingBackup': 'string';
   'backupScreen.categoriesRestored': 'string';
   'backupScreen.createBackup': 'string';
   'backupScreen.createBackupDesc': 'string';
@@ -450,6 +455,8 @@ export interface StringMap {
   'notifications.DRIVE_RESTORE': 'string';
   'notifications.SELF_HOST_BACKUP': 'string';
   'notifications.SELF_HOST_RESTORE': 'string';
+  'notifications.LOCAL_BACKUP': 'string';
+  'notifications.LOCAL_RESTORE': 'string';
   'notifications.MIGRATE_NOVEL': 'string';
   'notifications.DOWNLOAD_CHAPTER': 'string';
 }

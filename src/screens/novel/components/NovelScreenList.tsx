@@ -18,11 +18,13 @@ import {
   NativeScrollEvent,
   RefreshControl,
   StyleSheet,
+  View,
 } from 'react-native';
 import { SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TrackSheet from './Tracker/TrackSheet';
 import NovelBottomSheet from './NovelBottomSheet';
+import PageNavigationBottomSheet from './PageNavigationBottomSheet';
 import * as Haptics from 'expo-haptics';
 import { AnimatedFAB } from 'react-native-paper';
 import { ChapterListSkeleton } from '@components/Skeleton/Skeleton';
@@ -32,6 +34,7 @@ import { LegendList, LegendListRef } from '@legendapp/list';
 import FileManager from '@specs/NativeFile';
 import { downloadFile } from '@plugins/helpers/fetch';
 import { StorageAccessFramework } from 'expo-file-system/legacy';
+import PagePaginationControl from './PagePaginationControl';
 import {
   deleteChapterFromDb,
   insertChapterAndAdjustPositions,
@@ -45,7 +48,6 @@ type NovelScreenListProps = {
   headerOpacity: SharedValue<number>;
   listRef: React.RefObject<LegendListRef | null>;
   navigation: any;
-  openDrawer: () => void;
   selected: ChapterInfo[];
   setSelected: React.Dispatch<React.SetStateAction<ChapterInfo[]>>;
   getNextChapterBatch: () => void;
@@ -63,7 +65,6 @@ const NovelScreenList = ({
   headerOpacity,
   listRef,
   navigation,
-  openDrawer,
   routeBaseNovel,
   selected,
   setSelected,
@@ -85,6 +86,7 @@ const NovelScreenList = ({
     novel: fetchedNovel,
     batchInformation,
     pageIndex,
+    openPage,
   } = useNovelContext();
 
   const { pluginId } = routeBaseNovel;
@@ -123,6 +125,7 @@ const NovelScreenList = ({
 
   const novelBottomSheetRef = useRef<BottomSheetModalMethods>(null);
   const trackerSheetRef = useRef<BottomSheetModalMethods>(null);
+  const pageNavigationSheetRef = useRef<BottomSheetModalMethods>(null);
 
   const deleteDownloadsSnackbar = useBoolean();
 
@@ -222,7 +225,7 @@ const handleImportChapter = async (chapter: ChapterInfo, index: number, pluginId
       return;
     }
 
-    // ? Correct structure � the selected file is in file.assets[0]
+    // ? Correct structure ? the selected file is in file.assets[0]
     const selectedFile = file.assets?.[0];
     if (!selectedFile) {
       console.error('No file selected or picker returned unexpected result:', file);
@@ -410,6 +413,8 @@ const handleAddChapter = async (
     }
   };
 
+  const hasMultiplePages = pages.length > 1 || (novel?.totalPages ?? 0) > 1;
+
   return (
     <>
       <LegendList
@@ -426,7 +431,23 @@ const handleAddChapter = async (
           refreshFlag,
         ]}
         // ListEmptyComponent={ListEmptyComponent}
-        ListFooterComponent={!fetching ? undefined : ListEmptyComponent}
+        ListFooterComponent={
+          !fetching ? (
+            hasMultiplePages ? (
+              <View>
+                <PagePaginationControl
+                  currentPage={pageIndex + 1}
+                  totalPages={pages.length}
+                  onPageChange={pageNum => openPage(pageNum - 1)}
+                  onOpenDrawer={() => pageNavigationSheetRef.current?.present()}
+                  theme={theme}
+                />
+              </View>
+            ) : undefined
+          ) : (
+            ListEmptyComponent
+          )
+        }
         renderItem={({ item, index }) => {
           if (novel.id === 'NO_ID') {
             return null;
@@ -480,8 +501,10 @@ const handleAddChapter = async (
             novel={novel}
             novelBottomSheetRef={novelBottomSheetRef}
             onRefreshPage={onRefreshPage}
-            openDrawer={openDrawer}
             page={pages.length > 1 ? pages[pageIndex] : undefined}
+            pageIndex={pageIndex}
+            pages={pages}
+            pageNavigationSheetRef={pageNavigationSheetRef}
             setCustomNovelCover={setCustomNovelCover}
             saveNovelCover={saveNovelCover}
             theme={theme}
@@ -502,6 +525,15 @@ const handleAddChapter = async (
             showChapterTitles={showChapterTitles}
           />
           <TrackSheet bottomSheetRef={trackerSheetRef} novel={novel} />
+          {(novel.totalPages ?? 0) > 1 || pages.length > 1 ? (
+            <PageNavigationBottomSheet
+              bottomSheetRef={pageNavigationSheetRef}
+              theme={theme}
+              pages={pages}
+              pageIndex={pageIndex}
+              openPage={openPage}
+            />
+          ) : null}
           {showScrollToTop && (
             <AnimatedFAB
               style={[

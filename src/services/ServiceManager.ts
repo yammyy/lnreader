@@ -13,6 +13,7 @@ import {
   SelfHostData,
   selfHostRestore,
 } from './backup/selfhost';
+import { createBackup, restoreBackup } from './backup/local';
 import { migrateNovel, MigrateNovelData } from './migrate/migrateNovel';
 import { downloadChapter } from './download/downloadChapter';
 import { askForPostNotificationsPermission } from '@utils/askForPostNoftificationsPermission';
@@ -24,6 +25,8 @@ type taskNames =
   | 'DRIVE_RESTORE'
   | 'SELF_HOST_BACKUP'
   | 'SELF_HOST_RESTORE'
+  | 'LOCAL_BACKUP'
+  | 'LOCAL_RESTORE'
   | 'MIGRATE_NOVEL'
   | 'DOWNLOAD_CHAPTER'
   | 'IMPORT_CHAPTER';
@@ -47,6 +50,8 @@ export type BackgroundTask =
   | { name: 'DRIVE_RESTORE'; data: DriveFile }
   | { name: 'SELF_HOST_BACKUP'; data: SelfHostData }
   | { name: 'SELF_HOST_RESTORE'; data: SelfHostData }
+  | { name: 'LOCAL_BACKUP' }
+  | { name: 'LOCAL_RESTORE' }
   | { name: 'MIGRATE_NOVEL'; data: MigrateNovelData }
   | DownloadChapterTask
   | ImportChapterTask;
@@ -106,6 +111,9 @@ export default class ServiceManager {
   }
 
   isMultiplicableTask(task: BackgroundTask) {
+    if (!task?.name) {
+      return false;
+    }
     return (
       ['DOWNLOAD_CHAPTER', 'IMPORT_EPUB', 'MIGRATE_NOVEL', 'IMPORT_CHAPTER'] as Array<
         BackgroundTask['name']
@@ -141,14 +149,18 @@ export default class ServiceManager {
     transformer: (meta: BackgroundTaskMetadata) => BackgroundTaskMetadata,
   ) {
     const taskList = [...this.getTaskList()];
+    if (taskList.length === 0 || !taskList[0]?.meta) {
+      return;
+    }
+
     taskList[0] = {
       ...taskList[0],
       meta: transformer(taskList[0].meta),
     };
 
     if (
-      taskList[0].meta.isRunning &&
-      taskList[0].task.name !== 'DOWNLOAD_CHAPTER'
+      taskList[0].meta?.isRunning &&
+      taskList[0].task?.name !== 'DOWNLOAD_CHAPTER'
     ) {
       const now = Date.now();
       if (now - this.lastNotifUpdate > 1000) {
@@ -159,11 +171,11 @@ export default class ServiceManager {
             return;
           }
           BackgroundService.updateNotification({
-            taskTitle: taskList[0].meta.name,
-            taskDesc: taskList[0].meta.progressText ?? '',
+            taskTitle: taskList[0].meta?.name || 'Unknown Task',
+            taskDesc: taskList[0].meta?.progressText ?? '',
             progressBar: {
-              indeterminate: taskList[0].meta.progress === undefined,
-              value: (taskList[0].meta.progress || 0) * 100,
+              indeterminate: taskList[0].meta?.progress === undefined,
+              value: (taskList[0].meta?.progress || 0) * 100,
               max: 100,
             },
           });
@@ -171,11 +183,11 @@ export default class ServiceManager {
       } else {
         this.lastNotifUpdate = now;
         BackgroundService.updateNotification({
-          taskTitle: taskList[0].meta.name,
-          taskDesc: taskList[0].meta.progressText ?? '',
+          taskTitle: taskList[0].meta?.name || 'Unknown Task',
+          taskDesc: taskList[0].meta?.progressText ?? '',
           progressBar: {
-            indeterminate: taskList[0].meta.progress === undefined,
-            value: (taskList[0].meta.progress || 0) * 100,
+            indeterminate: taskList[0].meta?.progress === undefined,
+            value: (taskList[0].meta?.progress || 0) * 100,
             max: 100,
           },
         });
@@ -194,8 +206,8 @@ export default class ServiceManager {
     let count = 0;
     for (const task of startingTasks) {
       if (
-        task.task.name === 'DOWNLOAD_CHAPTER' &&
-        task.meta.name === currentTask.meta.name
+        task.task?.name === 'DOWNLOAD_CHAPTER' &&
+        task.meta?.name === currentTask.meta?.name
       ) {
         if (task.id === currentTask.id) {
           i = count;
@@ -218,13 +230,18 @@ export default class ServiceManager {
     task: QueuedBackgroundTask,
     startingTasks: QueuedBackgroundTask[],
   ) {
+    // Safety check for old format tasks
+    if (!task?.task?.name) {
+      return;
+    }
+
     const progress =
       task.task.name === 'DOWNLOAD_CHAPTER'
         ? this.getProgressForNotification(task, startingTasks)
         : null;
     await BackgroundService.updateNotification({
-      taskTitle: task.meta.name,
-      taskDesc: task.meta.progressText ?? '',
+      taskTitle: task.meta?.name || 'Unknown Task',
+      taskDesc: task.meta?.progressText ?? '',
       progressBar: {
         indeterminate: progress === null,
         max: 100,
@@ -247,6 +264,10 @@ export default class ServiceManager {
         return createSelfHostBackup(task.task.data, this.setMeta.bind(this));
       case 'SELF_HOST_RESTORE':
         return selfHostRestore(task.task.data, this.setMeta.bind(this));
+      case 'LOCAL_BACKUP':
+        return createBackup(this.setMeta.bind(this));
+      case 'LOCAL_RESTORE':
+        return restoreBackup(this.setMeta.bind(this));
       case 'MIGRATE_NOVEL':
         return migrateNovel(task.task.data, this.setMeta.bind(this));
       case 'DOWNLOAD_CHAPTER':
@@ -266,6 +287,8 @@ export default class ServiceManager {
       'DRIVE_RESTORE': 0,
       'SELF_HOST_BACKUP': 0,
       'SELF_HOST_RESTORE': 0,
+      'LOCAL_BACKUP': 0,
+      'LOCAL_RESTORE': 0,
       'MIGRATE_NOVEL': 0,
       'DOWNLOAD_CHAPTER': 0,
       'IMPORT_CHAPTER': 0,
@@ -285,12 +308,18 @@ export default class ServiceManager {
       newtasks.forEach(t => tasksSet.add(t.id));
 
       try {
+        // Safety check - getTaskList() should already handle conversion, but double-check
+        if (!currentTask?.task?.name) {
+          // Skip invalid tasks
+          setMMKVObject(manager.STORE_KEY, manager.getTaskList().slice(1));
+          continue;
+        }
         await manager.executeTask(currentTask, startingTasks);
         doneTasks[currentTask.task.name] += 1;
       } catch (error: any) {
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: currentTask.meta.name,
+            title: currentTask.meta?.name || 'Task Error',
             body: error?.message || String(error),
           },
           trigger: null,
@@ -303,7 +332,7 @@ export default class ServiceManager {
     if (manager.getTaskList().length === 0) {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Background tasks done',
+          title: getString('common.done'),
           body: Object.keys(doneTasks)
             .filter(key => doneTasks[key as BackgroundTask['name']] > 0)
             .map(
@@ -320,48 +349,96 @@ export default class ServiceManager {
   }
 
   getTaskName(task: BackgroundTask) {
+    if (!task?.name) {
+      return 'Unknown Task';
+    }
     switch (task.name) {
       case 'IMPORT_CHAPTER':
         return 'Import Chapter ' +
           task.data.chapterName +
           ' / ' + task.data.filename;
       case 'DOWNLOAD_CHAPTER':
-        return 'Download ' + task.data.novelName;
+        return `${getString('notifications.DOWNLOAD_CHAPTER')}: ${
+          task.data?.novelName || ''
+        }`;
       case 'IMPORT_EPUB':
-        return 'Import Epub ' + task.data.filename;
+        return `${getString('notifications.IMPORT_EPUB')}: ${
+          task.data?.filename || ''
+        }`;
       case 'MIGRATE_NOVEL':
-        return 'Migrate Novel ' + task.data.fromNovel.name;
+        return `${getString('notifications.MIGRATE_NOVEL')}: ${
+          task.data?.fromNovel?.name || ''
+        }`;
       case 'UPDATE_LIBRARY':
         if (task.data !== undefined) {
-          return 'Update Category ' + task.data.categoryName;
+          return `${getString('notifications.UPDATE_LIBRARY')}: ${
+            task.data?.categoryName || ''
+          }`;
         }
-        return 'Update Library';
+        return getString('notifications.UPDATE_LIBRARY');
       case 'DRIVE_BACKUP':
-        return 'Drive Backup';
+        return getString('notifications.DRIVE_BACKUP');
       case 'DRIVE_RESTORE':
-        return 'Drive Restore';
+        return getString('notifications.DRIVE_RESTORE');
       case 'SELF_HOST_BACKUP':
-        return 'Self Host Backup';
+        return getString('notifications.SELF_HOST_BACKUP');
       case 'SELF_HOST_RESTORE':
-        return 'Self Host Restore';
+        return getString('notifications.SELF_HOST_RESTORE');
+      case 'LOCAL_BACKUP':
+        return getString('notifications.LOCAL_BACKUP');
+      case 'LOCAL_RESTORE':
+        return getString('notifications.LOCAL_RESTORE');
       default:
         return 'Unknown Task';
     }
   }
 
   getTaskList() {
-    return getMMKVObject<Array<QueuedBackgroundTask>>(this.STORE_KEY) || [];
+    const tasks = getMMKVObject<Array<any>>(this.STORE_KEY) || [];
+
+    const convertedTasks = tasks
+      .map(task => {
+        if (task?.task && task?.meta && task?.id) {
+          return task as QueuedBackgroundTask;
+        }
+
+        if (task?.name && !task?.task) {
+          const backgroundTask = task as BackgroundTask;
+          return {
+            task: backgroundTask,
+            meta: {
+              name: this.getTaskName(backgroundTask),
+              isRunning: false,
+              progress: undefined,
+              progressText:
+                backgroundTask.name === 'DOWNLOAD_CHAPTER'
+                  ? (backgroundTask as DownloadChapterTask).data?.chapterName
+                  : undefined,
+            },
+            id: makeId(),
+          } as QueuedBackgroundTask;
+        }
+
+        return null;
+      })
+      .filter((task): task is QueuedBackgroundTask => task !== null);
+
+    const hasOldFormat = tasks.some(task => task?.name && !task?.task);
+
+    if (hasOldFormat) {
+      setMMKVObject(this.STORE_KEY, convertedTasks);
+    }
+
+    return convertedTasks;
   }
 
   addTask(tasks: BackgroundTask | BackgroundTask[]) {
-    let currentTasks = this.getTaskList();
-    // @ts-expect-error Older version can still have tasks with old format
-    currentTasks = currentTasks.filter(task => !task?.name);
+    const currentTasks = this.getTaskList();
 
     const addableTasks = (Array.isArray(tasks) ? tasks : [tasks]).filter(
       task =>
         this.isMultiplicableTask(task) ||
-        !currentTasks.some(_t => _t.task.name === task.name),
+        !currentTasks.some(_t => _t.task?.name === task.name),
     );
     if (addableTasks.length) {
       const newTasks: QueuedBackgroundTask[] = addableTasks.map(task => ({
@@ -372,7 +449,7 @@ export default class ServiceManager {
           progress: undefined,
           progressText:
             task.name === 'DOWNLOAD_CHAPTER'
-              ? task.data.chapterName
+              ? task.data?.chapterName
               : undefined,
         },
         id: makeId(),
@@ -389,13 +466,13 @@ export default class ServiceManager {
       this.pause();
       setMMKVObject(
         this.STORE_KEY,
-        taskList.filter(t => t.task.name !== name),
+        taskList.filter(t => t.task?.name !== name),
       );
       this.resume();
     } else {
       setMMKVObject(
         this.STORE_KEY,
-        taskList.filter(t => t.task.name !== name),
+        taskList.filter(t => t.task?.name !== name),
       );
     }
   }
