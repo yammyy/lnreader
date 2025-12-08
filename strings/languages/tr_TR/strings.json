@@ -364,7 +364,7 @@
       },
       "order": {
         "byChapterName": "Bölüm ismine göre",
-        "bySource": "Kaynağa göre"
+        "bySource": "Kaynağa göre",
         "byChapterNumber": "By chapter number"
       }
     },

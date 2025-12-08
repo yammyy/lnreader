@@ -364,7 +364,7 @@
       },
       "order": {
         "byChapterName": "За назвою розділу",
-        "bySource": "За джерелом"
+        "bySource": "За джерелом",
         "byChapterNumber": "By chapter number"
       }
     },

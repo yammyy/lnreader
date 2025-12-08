@@ -43,13 +43,13 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
     getNextChapterBatch,
     setNovel,
     bookmarkChapters,
-    deleteChaptersFromDb,
     markChaptersRead,
     markChaptersUnread,
     markPreviouschaptersRead,
     markPreviousChaptersUnread,
     refreshChapters,
     deleteChapters,
+    deleteChaptersFromDb,
     handleMoveChapters,
   } = useNovelContext();
 
@@ -58,48 +58,34 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
 
   const [selected, setSelected] = useState<ChapterInfo[]>([]);
   const [editInfoModal, showEditInfoModal] = useState(false);
+
+  // ⭐ added back: modal for moving chapters
   const [moveChaptersModal, setMoveChaptersModal] = useState(false);
 
   const chapterListRef = useRef<LegendListRef | null>(null);
 
   const deleteDownloadsSnackbar = useBoolean();
-
   const headerOpacity = useSharedValue(0);
-
-  // TODO: fix this
-  // useEffect(() => {
-  //   if (chapters.length !== 0 && !fetching) {
-  //     refreshChapters();
-  //   }
-  // }, [chapters.length, downloadQueue.length, fetching, refreshChapters]);
-
-  // useFocusEffect(refreshChapters);
 
   const downloadChs = useCallback(
     async (amount: number | 'all' | 'unread') => {
-      if (!novel) {
-        return;
-      }
+      if (!novel) return;
 
       let chaptersToUse = chapters;
 
       if (amount === 'all') {
-        const allChapters = await getAllUndownloadedChapters(novel.id);
-        chaptersToUse = allChapters;
+        chaptersToUse = await getAllUndownloadedChapters(novel.id);
       }
 
       if (amount === 'unread') {
-        const allUnreadChapters = await getAllUndownloadedAndUnreadChapters(
-          novel.id,
-        );
-        chaptersToUse = allUnreadChapters;
+        chaptersToUse = await getAllUndownloadedAndUnreadChapters(novel.id);
       }
 
       let filtered = chaptersToUse;
 
       if (isNumber(amount)) {
         filtered = filtered
-          .filter(chapter => !chapter.isDownloaded)
+          .filter(c => !c.isDownloaded)
           .slice(0, amount);
       }
 
@@ -109,16 +95,14 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
     },
     [chapters, downloadChapters, novel],
   );
+
   const deleteChs = useCallback(() => {
     deleteChapters(chapters.filter(c => c.isDownloaded));
   }, [chapters, deleteChapters]);
+
   const shareNovel = () => {
-    if (!novel) {
-      return;
-    }
-    Share.share({
-      message: resolveUrl(novel.pluginId, novel.path, true),
-    });
+    if (!novel) return;
+    Share.share({ message: resolveUrl(novel.pluginId, novel.path, true) });
   };
 
   const [jumpToChapterModal, showJumpToChapterModal] = useState(false);
@@ -131,30 +115,34 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
   const actions = useMemo(() => {
     const list: { icon: MaterialDesignIconName; onPress: () => void }[] = [];
 
-    if (!novel?.isLocal && selected.some(obj => !obj.isDownloaded)) {
+    // --- Download selected chapters ---
+    if (!novel?.isLocal && selected.some(c => !c.isDownloaded)) {
       list.push({
         icon: 'download-outline',
         onPress: () => {
           if (novel) {
             downloadChapters(
               novel,
-              selected.filter(chapter => !chapter.isDownloaded),
+              selected.filter(c => !c.isDownloaded),
             );
           }
           setSelected([]);
         },
       });
     }
-    if (!novel?.isLocal && selected.some(obj => obj.isDownloaded)) {
+
+    // --- Delete downloaded files ---
+    if (!novel?.isLocal && selected.some(c => c.isDownloaded)) {
       list.push({
         icon: 'trash-can-outline',
         onPress: () => {
-          deleteChapters(selected.filter(chapter => chapter.isDownloaded));
+          deleteChapters(selected.filter(c => c.isDownloaded));
           setSelected([]);
         },
       });
     }
 
+    // --- Bookmark ---
     list.push({
       icon: 'bookmark-outline',
       onPress: () => {
@@ -163,6 +151,7 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
       },
     });
 
+    // ⭐ ADDED BACK: Move chapters to another novel
     list.push({
       icon: 'transfer-right',
       onPress: () => {
@@ -170,15 +159,17 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
       },
     });
 
+    // ⭐ ADDED BACK: Permanently delete from DB
     list.push({
-      icon:'delete-forever-outline',
+      icon: 'delete-forever-outline',
       onPress: () => {
-          deleteChaptersFromDb(selected);
-          setSelected([]);
+        deleteChaptersFromDb(selected);
+        setSelected([]);
       },
     });
 
-    if (selected.some(obj => obj.unread)) {
+    // --- Mark as read ---
+    if (selected.some(c => c.unread)) {
       list.push({
         icon: 'check',
         onPress: () => {
@@ -188,8 +179,9 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
       });
     }
 
-    if (selected.some(obj => !obj.unread)) {
-      const chapterIds = selected.map(chapter => chapter.id);
+    // --- Mark as unread ---
+    if (selected.some(c => !c.unread)) {
+      const chapterIds = selected.map(c => c.id);
 
       list.push({
         icon: 'check-outline',
@@ -202,12 +194,14 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
       });
     }
 
+    // --- Mark all previous read/unread ---
     if (selected.length === 1) {
-      if (selected[0].unread) {
+      const ch = selected[0];
+      if (ch.unread) {
         list.push({
           icon: 'playlist-check',
           onPress: () => {
-            markPreviouschaptersRead(selected[0].id);
+            markPreviouschaptersRead(ch.id);
             setSelected([]);
           },
         });
@@ -215,7 +209,7 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
         list.push({
           icon: 'playlist-remove',
           onPress: () => {
-            markPreviousChaptersUnread(selected[0].id);
+            markPreviousChaptersUnread(ch.id);
             setSelected([]);
           },
         });
@@ -224,36 +218,32 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
 
     return list;
   }, [
+    selected,
+    novel,
     bookmarkChapters,
-    deleteChaptersFromDb,
-    deleteChapters,
     downloadChapters,
+    deleteChapters,
+    deleteChaptersFromDb,
     markChaptersRead,
     markChaptersUnread,
-    markPreviousChaptersUnread,
     markPreviouschaptersRead,
-    novel,
+    markPreviousChaptersUnread,
     refreshChapters,
-    selected,
   ]);
 
   const setCustomNovelCover = async () => {
-    if (!novel) {
-      return;
-    }
+    if (!novel) return;
     const newCover = await pickCustomNovelCover(novel);
     if (newCover) {
-      setNovel({
-        ...novel,
-        cover: newCover,
-      });
+      setNovel({ ...novel, cover: newCover });
     }
   };
+
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
-    <Portal.Host>
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Portal.Host>
         <Portal>
           {selected.length === 0 ? (
             <NovelAppbar
@@ -288,13 +278,12 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
               <Appbar.Action
                 icon="select-all"
                 iconColor={theme.onBackground}
-                onPress={() => {
-                  setSelected(chapters);
-                }}
+                onPress={() => setSelected(chapters)}
               />
             </Animated.View>
           )}
         </Portal>
+
         <SafeAreaView excludeTop>
           <Suspense fallback={<NovelScreenLoading theme={theme} />}>
             <NovelScreenList
@@ -331,8 +320,7 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
               {getString('novelScreen.deleteMessage')}
             </Text>
           </Snackbar>
-        </Portal>
-        <Portal>
+
           {novel && (
             <>
               <JumpToChapterModal
@@ -343,6 +331,7 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
                 chapterListRef={chapterListRef}
                 navigation={navigation}
               />
+
               <EditInfoModal
                 modalVisible={editInfoModal}
                 hideModal={() => showEditInfoModal(false)}
@@ -350,6 +339,7 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
                 setNovel={setNovel}
                 theme={theme}
               />
+
               <DownloadCustomChapterModal
                 modalVisible={dlChapterModalVisible}
                 hideModal={closeDlChapterModal}
@@ -358,73 +348,21 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
                 theme={theme}
                 downloadChapters={downloadChapters}
               />
-            </Suspense>
-          </SafeAreaView>
 
-          <Portal>
-            <Actionbar active={selected.length > 0} actions={actions} />
-            <Snackbar
-              visible={deleteDownloadsSnackbar.value}
-              onDismiss={deleteDownloadsSnackbar.setFalse}
-              action={{
-                label: getString('common.delete'),
-                onPress: () => {
-                  deleteChapters(chapters.filter(c => c.isDownloaded));
-                },
-              }}
-              theme={{ colors: { primary: theme.primary } }}
-              style={styles.snackbar}
-            >
-              <Text style={{ color: theme.onSurface }}>
-                {getString('novelScreen.deleteMessage')}
-              </Text>
-            </Snackbar>
-          </Portal>
-          <Portal>
-            {novel && (
-              <>
-                <JumpToChapterModal
-                  modalVisible={jumpToChapterModal}
-                  hideModal={() => showJumpToChapterModal(false)}
-                  chapters={chapters}
-                  novel={novel}
-                  chapterListRef={chapterListRef}
-                  navigation={navigation}
-                />
-                <EditInfoModal
-                  modalVisible={editInfoModal}
-                  hideModal={() => showEditInfoModal(false)}
-                  novel={novel}
-                  setNovel={setNovel}
-                  theme={theme}
-                />
-                <DownloadCustomChapterModal
-                  modalVisible={dlChapterModalVisible}
-                  hideModal={closeDlChapterModal}
-                  novel={novel}
-                  chapters={chapters}
-                  theme={theme}
-                  downloadChapters={downloadChapters}
-                />
-                <MoveChaptersModal
-                  visible={moveChaptersModal}
-                  onDismiss={() => setMoveChaptersModal(false)}
-                  onMove={(targetNovelId) => {
-                    console.log("Start handling moving");
-                    handleMoveChapters?.(
-                      selected,
-                      targetNovelId,
-                    );
-                    console.log("Unselect all");
-                    setSelected([]);
-                  }}
-                />
-              </>
-            )}
-          </Portal>
-        </View>
+              {/* ⭐ Moved chapters modal restored */}
+              <MoveChaptersModal
+                visible={moveChaptersModal}
+                onDismiss={() => setMoveChaptersModal(false)}
+                onMove={targetNovelId => {
+                  handleMoveChapters?.(selected, targetNovelId);
+                  setSelected([]);
+                }}
+              />
+            </>
+          )}
+        </Portal>
       </Portal.Host>
-    </Drawer>
+    </View>
   );
 };
 
@@ -442,13 +380,12 @@ function createStyles(theme: ThemeColors) {
       position: 'absolute',
       width: '100%',
     },
-    container: { flex: 1 },
-    rowBack: {
-      alignItems: 'center',
+    container: {
       flex: 1,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
     },
-    snackbar: { backgroundColor: theme.surface, marginBottom: 32 },
+    snackbar: {
+      backgroundColor: theme.surface,
+      marginBottom: 32,
+    },
   });
 }
