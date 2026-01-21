@@ -94,15 +94,22 @@ const UpdatesScreen = ({ navigation }: UpdateScreenProps) => {
                 acc: { data: UpdateOverview[]; date: string }[],
                 cur: UpdateOverview,
               ) => {
-                if (acc.length === 0 || acc.at(-1)?.date !== cur.updateDate) {
-                  acc.push({ data: [cur], date: cur.updateDate });
-                  return acc;
+                // Normalize date for correct grouping regardless of locale
+                const normalizedDate = dayjs(cur.updateDate).format('YYYY-MM-DD');
+
+                if (acc.length === 0 || acc.at(-1)?.date !== normalizedDate) {
+                  acc.push({ data: [cur], date: normalizedDate });
+                } else {
+                  acc.at(-1)?.data.push(cur);
                 }
-                acc.at(-1)?.data.push(cur);
+
                 return acc;
               },
               [],
-            )}
+            )
+            // Sort sections consistently
+            .sort((a, b) => (dayjs(b.date).isAfter(a.date) ? 1 : -1))
+          }
           keyExtractor={item => 'updatedGroup' + item.novelId}
           renderItem={({ item }) => (
             <Suspense fallback={<UpdatesSkeletonLoading theme={theme} />}>
@@ -136,9 +143,7 @@ const UpdatesScreen = ({ navigation }: UpdateScreenProps) => {
           refreshControl={
             <RefreshControl
               refreshing={false}
-              onRefresh={() =>
-                ServiceManager.manager.addTask({ name: 'UPDATE_LIBRARY' })
-              }
+              onRefresh={getUpdates}
               colors={[theme.onPrimary]}
               progressBackgroundColor={theme.primary}
             />

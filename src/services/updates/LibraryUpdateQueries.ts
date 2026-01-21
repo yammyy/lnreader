@@ -64,33 +64,49 @@ const updateNovelChapters = (
       const {
         name,
         path,
-        releaseTime,
+        releaseTime: rawReleaseTime,
         page: customPage,
         chapterNumber,
       } = chapters[position];
+
+      if (!path?.trim()) {
+        console.log('Skipping invalid chapter:', { name, path });
+        continue;
+      }
+
       const chapterPage = page || customPage || '1';
 
-      const result = await tx.runAsync(
-        `
-          INSERT INTO Chapter (path, name, releaseTime, novelId, updatedTime, chapterNumber, page, position)
-          SELECT ?, ?, ?, ?, datetime('now','localtime'), ?, ?, ?
-          WHERE NOT EXISTS (SELECT id FROM Chapter WHERE path = ? AND novelId = ?);
-        `,
-        path,
-        name,
-        releaseTime || null,
-        novelId,
-        chapterNumber || null,
-        chapterPage,
-        position,
+      // Use today's date if releaseTime is falsy (null, '', undefined, etc)
+      const releaseTime = rawReleaseTime
+        ? rawReleaseTime
+        : new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+      // Check exists first
+      const existing = await tx.getFirstAsync<{ id: number }>(
+        'SELECT id FROM Chapter WHERE path = ? AND novelId = ?',
         path,
         novelId,
       );
 
-      const insertId = result.lastInsertRowId;
+      if (!existing) {
+        // Insert new
+        const result = await tx.runAsync(
+          `
+            INSERT INTO Chapter (path, name, releaseTime, novelId, updatedTime, chapterNumber, page, position)
+            VALUES (?, ?, ?, ?, datetime('now','localtime'), ?, ?, ?)
+          `,
+          path,
+          name,
+          releaseTime,
+          novelId,
+          chapterNumber || null,
+          chapterPage,
+          position,
+        );
 
-      if (insertId && insertId >= 0) {
-        if (downloadNewChapters) {
+        const insertId = result.lastInsertRowId;
+
+        if (insertId && insertId >= 0 && downloadNewChapters) {
           ServiceManager.manager.addTask({
             name: 'DOWNLOAD_CHAPTER',
             data: {
@@ -101,6 +117,7 @@ const updateNovelChapters = (
           });
         }
       } else {
+        // Update if changed
         await tx.runAsync(
           `
             UPDATE Chapter SET
@@ -108,13 +125,13 @@ const updateNovelChapters = (
             WHERE path = ? AND novelId = ? AND (name != ? OR releaseTime != ? OR page != ? OR position != ?);
           `,
           name,
-          releaseTime || null,
+          rawReleaseTime || null,
           chapterPage,
           position,
           path,
           novelId,
           name,
-          releaseTime || null,
+          rawReleaseTime || null,
           chapterPage,
           position,
         );

@@ -167,6 +167,17 @@ const NovelInfoHeader = ({
             ) : null}
             <Row>
               <MaterialCommunityIcons
+                name="identifier"       // Small ID badge icon
+                size={14}
+                color={theme.onSurfaceVariant}
+                style={styles.marginRight}
+              />
+              <NovelInfo theme={theme}>
+                {`${novel.id}`}
+              </NovelInfo>
+            </Row>
+            <Row>
+              <MaterialCommunityIcons
                 name={getStatusIcon(
                   novel.id !== 'NO_ID' ? novel.status : undefined,
                 )}

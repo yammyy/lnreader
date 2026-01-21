@@ -12,6 +12,23 @@ import { NOVEL_STORAGE } from '@utils/Storages';
 import { db } from '@database/db';
 import NativeFile from '@specs/NativeFile';
 
+// Returns release date in YYYY-MM-DD format
+export const getReleaseDate = (value?: string) => {
+  // If we already have a non-empty releaseTime — return as-is
+  if (value?.trim()) {
+    return value.trim();
+  }
+
+  // Otherwise use today's date
+  const d = new Date();
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`; // TEXT format
+};
+
 // #region Mutations
 
 export const insertChapters = async (
@@ -27,6 +44,7 @@ export const insertChapters = async (
       const chapter = chapters[index];
       const chapterName = chapter.name ?? `Chapter ${String(index + 1).padStart(5, '0')}`;
       const chapterPage = chapter.page || '1';
+      const chapterRelease = getReleaseDate(chapter.releaseTime);
 
       const result = await tx.runAsync(
         `
@@ -36,7 +54,7 @@ export const insertChapters = async (
         `,
         chapter.path,
         chapterName,
-        chapter.releaseTime || '',
+        chapterRelease,
         novelId,
         chapter.chapterNumber || null,
         chapterPage,
@@ -57,21 +75,20 @@ export const insertChapters = async (
           chapterPage,
           index,
           chapterName,
-          chapter.releaseTime || '',
+          chapterRelease,
           chapter.chapterNumber || null,
           chapter.path,
           novelId,
           chapterPage,
           index,
           chapterName,
-          chapter.releaseTime || '',
+          chapterRelease,
           chapter.chapterNumber || null,
         );
       }
     }
   });
 };
-
 export const insertChaptersAndReturnIndex = async (
   novelId: number,
   chapters?: ChapterItem[],
@@ -79,9 +96,10 @@ export const insertChaptersAndReturnIndex = async (
   if (!chapters?.length) return [];
 
   await db.withTransactionAsync(async () => {
+    // Correct: ALL fields use ? placeholders
     const statement = db.prepareSync(`
       INSERT INTO Chapter (path, name, releaseTime, novelId, chapterNumber, page, position)
-      VALUES (?, ?, ?, ${novelId}, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(path, novelId) DO UPDATE SET
         page = excluded.page,
         position = excluded.position,
@@ -92,10 +110,15 @@ export const insertChaptersAndReturnIndex = async (
 
     try {
       chapters.forEach((chapter, index) => {
+        // Compute release per chapter (FIXED)
+        const release = getReleaseDate(chapter.releaseTime);
+
+        // Execute with 7 bindings (FIXED)
         statement.executeSync(
           chapter.path,
           chapter.name ?? 'Chapter ' + String(index + 1).padStart(5, '0'),
-          chapter.releaseTime ?? '',
+          release,
+          novelId,                         // ← moved into bindings
           chapter.chapterNumber ?? null,
           chapter.page ?? '1',
           index,
@@ -106,7 +129,7 @@ export const insertChaptersAndReturnIndex = async (
     }
   });
 
-  // After insert, get the IDs
+  // Fetch newly inserted IDs
   const ids: number[] = chapters.map(chapter => {
     const row = db.getFirstSync<{ id: number }>(
       `SELECT id FROM Chapter WHERE novelId = ? AND path = ?`,
@@ -135,6 +158,8 @@ export const insertChapterAndAdjustPositions = async (
       shiftStatement.finalizeSync();
     }
 
+    const release = getReleaseDate(newChapter.releaseTime);
+
     // Step 2: insert the new chapter at the desired position
     const insertStatement = db.prepareSync(`
       INSERT INTO Chapter (path, name, releaseTime, novelId, chapterNumber, page, position)
@@ -151,7 +176,7 @@ export const insertChapterAndAdjustPositions = async (
       insertStatement.executeSync(
         newChapter.path,
         newChapter.name ?? 'Chapter',
-        newChapter.releaseTime || '',
+        release,
         newChapter.chapterNumber || null,
         newChapter.page || '1',
         newChapter.position ?? 0,

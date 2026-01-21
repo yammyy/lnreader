@@ -349,12 +349,13 @@ const Novel = ({ route, navigation }: NovelScreenProps) => {
                 downloadChapters={downloadChapters}
               />
 
-              {/* ⭐ Moved chapters modal restored */}
               <MoveChaptersModal
                 visible={moveChaptersModal}
                 onDismiss={() => setMoveChaptersModal(false)}
-                onMove={targetNovelId => {
-                  handleMoveChapters?.(selected, targetNovelId);
+                onMove={(targetNovelId) => {
+                  console.log("Start handling moving");
+                  handleMoveChapters?.(selected,targetNovelId,);
+                  console.log("Unselect all");
                   setSelected([]);
                 }}
               />
